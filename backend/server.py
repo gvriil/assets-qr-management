@@ -839,6 +839,23 @@ async def create_qr_batch(batch: QRBatchCreate, user: dict = Depends(require_rol
     batch_id = str(uuid.uuid4())
     codes = []
     
+    # Build label text from label_data
+    label_parts = []
+    if batch.label_data:
+        if batch.label_data.oiv:
+            label_parts.append(batch.label_data.oiv)
+        if batch.label_data.floor:
+            label_parts.append(f"Эт.{batch.label_data.floor}")
+        if batch.label_data.department:
+            label_parts.append(batch.label_data.department)
+        if batch.label_data.section:
+            label_parts.append(batch.label_data.section)
+        if batch.label_data.location:
+            label_parts.append(batch.label_data.location)
+        if batch.label_data.mol:
+            label_parts.append(batch.label_data.mol)
+    label_text = " - ".join(label_parts) if label_parts else None
+    
     for i in range(batch.count):
         code_id = str(uuid.uuid4())
         qr_code = f"{batch.prefix}INV-{code_id[:8].upper()}"
@@ -847,6 +864,7 @@ async def create_qr_batch(batch: QRBatchCreate, user: dict = Depends(require_rol
             "qr_code": qr_code,
             "batch_id": batch_id,
             "status": "available",
+            "label_text": label_text,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
     
@@ -857,6 +875,8 @@ async def create_qr_batch(batch: QRBatchCreate, user: dict = Depends(require_rol
         "name": batch.name,
         "count": batch.count,
         "prefix": batch.prefix,
+        "label_data": batch.label_data.model_dump() if batch.label_data else None,
+        "label_text": label_text,
         "status": "created",
         "printed": 0,
         "spoiled": 0,
