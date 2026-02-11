@@ -106,7 +106,7 @@ class InventoryAPITester:
         
         # For testing, we'll use a recent code from logs
         # In real scenario, this would be extracted automatically
-        test_codes = ["286344", "741536", "575734", "174563"]  # Recent codes from logs
+        test_codes = ["399176", "354299", "310457", "286344"]  # Recent codes from logs
         
         for code in test_codes:
             success, response = self.run_test(
