@@ -121,18 +121,49 @@ const validateRow = (row, mapping) => {
 };
 
 // Transform row according to mapping
-const transformRow = (row, mapping) => {
+const transformRow = (row, mapping, parseCommas = false) => {
   const result = {};
+  
+  // Get description first for potential comma parsing
+  let descriptionValue = '';
+  const descCol = mapping.description || mapping.characteristics;
+  if (descCol && row[descCol]) {
+    descriptionValue = String(row[descCol]).trim();
+  }
+  
+  // If parseCommas is enabled and we have a description with commas, parse it
+  if (parseCommas && descriptionValue && descriptionValue.includes(',')) {
+    const parsed = parseDescriptionToFields(descriptionValue);
+    // Merge parsed data into result (low priority - will be overwritten by explicit mapping)
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (value && !result[key]) {
+        result[key] = value;
+      }
+    });
+  }
+  
+  // Apply explicit mapping (higher priority)
   FIELD_OPTIONS.forEach(opt => {
     const sourceCol = mapping[opt.value];
     if (sourceCol && row[sourceCol] !== undefined && row[sourceCol] !== null) {
-      result[opt.value] = String(row[sourceCol]).trim();
+      const val = String(row[sourceCol]).trim();
+      if (val && val !== 'nan') {
+        result[opt.value] = val;
+      }
     }
   });
   
   // Use description as name fallback
   if (!result.name && result.description) {
     result.name = result.description;
+  }
+  
+  // If description was parsed, the first part should be name
+  if (!result.name && descriptionValue) {
+    const firstPart = descriptionValue.split(',')[0].trim();
+    if (firstPart && firstPart !== 'nan') {
+      result.name = firstPart;
+    }
   }
   
   return result;
