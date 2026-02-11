@@ -1,31 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOffline } from '../context/OfflineContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { 
-  ArrowLeft, Save, Camera, Loader2, QrCode, 
-  Clock, User, Trash2, CheckCircle, History, Plus
+  Loader2, Save, Camera, Image as ImageIcon, Plus, ArrowLeft, 
+  Send, QrCode, Clock, Trash2, History, X
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../components/ui/dialog";
-
-const COMPLEXITY_OPTIONS = [
-  { value: 'S', label: 'Простой (S)' },
-  { value: 'M', label: 'Средний (M)' },
-  { value: 'L', label: 'Сложный (L)' }
-];
 
 const STATUS_LABELS = {
   new: 'Новый',
@@ -35,7 +21,7 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  new: 'bg-zinc-500',
+  new: 'bg-blue-500',
   pending: 'bg-amber-500',
   verified: 'bg-emerald-500',
   rejected: 'bg-red-500'
@@ -53,7 +39,7 @@ export default function ObjectPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { api } = useAuth();
-  const { isOnline, queueAction, cacheObject, getFieldSession, saveFieldSession, clearFieldSession } = useOffline();
+  const { isOnline, queueAction, cacheObject, getFieldSession, saveFieldSession } = useOffline();
   
   const isNew = id === 'new';
   const qrFromUrl = searchParams.get('qr');
@@ -94,6 +80,7 @@ export default function ObjectPage() {
   const [showHistory, setShowHistory] = useState(false);
   
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   useEffect(() => {
     if (!isNew && id) {
@@ -108,7 +95,7 @@ export default function ObjectPage() {
       setObject(res.data);
       cacheObject(res.data);
       
-      // Load audit log separately
+      // Load audit log
       try {
         const logRes = await api.get(`/audit-log?object_id=${id}`);
         setAuditLog(logRes.data || []);
@@ -205,10 +192,22 @@ export default function ObjectPage() {
     }
   };
 
-  const handlePhotoUpload = async (e) => {
+  // Handle file selection (from gallery)
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    await uploadPhoto(file);
+  };
 
+  // Handle camera capture
+  const handleCameraCapture = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadPhoto(file);
+  };
+
+  // Upload photo to server
+  const uploadPhoto = async (file) => {
     if (isNew) {
       toast.error('Сначала сохраните объект');
       return;
@@ -228,6 +227,7 @@ export default function ObjectPage() {
       }));
       toast.success('Фото загружено');
     } catch (err) {
+      console.error('Photo upload error:', err);
       toast.error('Ошибка загрузки фото');
     } finally {
       setUploadingPhoto(false);
@@ -250,20 +250,18 @@ export default function ObjectPage() {
           onFocus={() => setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
           placeholder={placeholder}
-          className="h-12 bg-zinc-800 border-zinc-700"
-          data-testid={`input-${label.toLowerCase().replace(/\s/g, '-')}`}
+          className="bg-zinc-900 border-zinc-700"
         />
         {showDropdown && filteredOptions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-48 overflow-auto">
+          <div className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
             {filteredOptions.map((opt, i) => (
-              <button
+              <div
                 key={i}
-                type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-zinc-700 text-white"
+                className="px-3 py-2 hover:bg-zinc-700 cursor-pointer text-sm"
                 onMouseDown={() => onChange(opt)}
               >
                 {opt}
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -274,193 +272,247 @@ export default function ObjectPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pb-24">
+    <div className="min-h-screen bg-zinc-950 text-white pb-24" data-testid="object-page">
       {/* Header */}
-      <header className="flex items-center gap-3 p-4 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-40">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate(-1)}
-          className="text-zinc-400"
-          data-testid="back-btn"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-lg font-bold font-['Barlow_Condensed'] uppercase tracking-tight">
-            {isNew ? 'Новый объект' : object.name || 'Объект'}
-          </h1>
-          {object.qr_code && (
-            <p className="text-xs text-zinc-500 font-mono">{object.qr_code}</p>
-          )}
+      <header className="sticky top-0 z-50 bg-zinc-900/95 backdrop-blur border-b border-zinc-800">
+        <div className="flex items-center justify-between p-4">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate(-1)}
+            data-testid="back-btn"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="text-center flex-1">
+            <p className="text-xs text-zinc-500 font-mono">
+              {object.qr_code || 'Новый объект'}
+            </p>
+            <Badge className={`${STATUS_COLORS[object.status]} text-xs`}>
+              {STATUS_LABELS[object.status]}
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowHistory(!showHistory)}
+            data-testid="history-btn"
+          >
+            <History className="w-5 h-5" />
+          </Button>
         </div>
-        {!isNew && (
-          <Badge className={`${STATUS_COLORS[object.status]} text-white`}>
-            {STATUS_LABELS[object.status]}
-          </Badge>
-        )}
       </header>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto">
-        {/* QR Code Display */}
-        {object.qr_code && (
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="py-4 flex items-center gap-4">
-              <div className="w-12 h-12 bg-zinc-800 rounded flex items-center justify-center">
-                <QrCode className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-zinc-500">QR Код</p>
-                <p className="font-mono text-primary">{object.qr_code}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Main Form */}
+      <div className="p-4 space-y-4 max-w-2xl mx-auto">
+        {/* Photos Section */}
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
-              Основные данные
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              Фотографии
             </CardTitle>
           </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {object.photos?.map((photo, i) => (
+                <div key={i} className="aspect-square relative group">
+                  <img
+                    src={`${process.env.REACT_APP_BACKEND_URL}${photo}`}
+                    alt={`Фото ${i + 1}`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                </div>
+              ))}
+              {(!object.photos || object.photos.length === 0) && (
+                <div className="col-span-3 text-center py-8 text-zinc-500">
+                  Нет фотографий
+                </div>
+              )}
+            </div>
+            
+            {/* Photo Upload Buttons */}
+            <div className="flex gap-2">
+              {/* Camera button - take photo */}
+              <Button
+                variant="default"
+                className="flex-1 bg-primary"
+                disabled={uploadingPhoto || isNew}
+                onClick={() => cameraInputRef.current?.click()}
+                data-testid="camera-btn"
+              >
+                {uploadingPhoto ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Camera className="w-4 h-4 mr-2" />
+                )}
+                Сфотографировать
+              </Button>
+              
+              {/* File input for camera capture */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleCameraCapture}
+              />
+              
+              {/* Gallery button - select from files */}
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={uploadingPhoto || isNew}
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="gallery-btn"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Из галереи
+              </Button>
+              
+              {/* File input for gallery */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+            </div>
+            
+            {isNew && (
+              <p className="text-xs text-amber-500 mt-2 text-center">
+                Сохраните объект, чтобы добавить фото
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Main Info */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Основная информация</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4">
-            {/* Name */}
             <div className="space-y-2">
               <Label className="text-zinc-300">Наименование *</Label>
               <Input
-                value={object.name}
+                value={object.name || ''}
                 onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="Например: Стол офисный"
-                className="h-12 bg-zinc-800 border-zinc-700"
+                placeholder="Введите название объекта"
+                className="bg-zinc-900 border-zinc-700"
                 data-testid="object-name-input"
               />
             </div>
 
-            {/* Category - with custom input */}
             <ComboInput
               label="Категория"
               value={object.category}
               options={categories}
               onChange={(v) => handleChange('category', v)}
-              placeholder="Мебель, Оборудование..."
+              placeholder="Выберите или введите"
             />
 
-            {/* Characteristics */}
             <div className="space-y-2">
-              <Label className="text-zinc-300">Характеристики / Описание</Label>
-              <Textarea
+              <Label className="text-zinc-300">Характеристики</Label>
+              <Input
                 value={object.characteristics || ''}
                 onChange={(e) => handleChange('characteristics', e.target.value)}
-                placeholder="Размеры, цвет, материал..."
-                className="bg-zinc-800 border-zinc-700 min-h-[80px]"
-                data-testid="characteristics-input"
+                placeholder="Описание, параметры"
+                className="bg-zinc-900 border-zinc-700"
               />
             </div>
 
-            {/* Serial Number */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Серийный номер</Label>
-              <Input
-                value={object.serial_number || ''}
-                onChange={(e) => handleChange('serial_number', e.target.value)}
-                placeholder="S/N"
-                className="h-12 bg-zinc-800 border-zinc-700"
-              />
-            </div>
-
-            {/* Inventory Number */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Инвентарный номер (старый)</Label>
-              <Input
-                value={object.inventory_number || ''}
-                onChange={(e) => handleChange('inventory_number', e.target.value)}
-                placeholder="Предыдущий инв. номер"
-                className="h-12 bg-zinc-800 border-zinc-700"
-              />
-            </div>
-
-            {/* Year */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-zinc-300">Год выпуска</Label>
+                <Label className="text-zinc-300">Инв. номер</Label>
                 <Input
-                  value={object.year || ''}
-                  onChange={(e) => handleChange('year', e.target.value)}
-                  placeholder="2020"
-                  className="h-12 bg-zinc-800 border-zinc-700"
+                  value={object.inventory_number || ''}
+                  onChange={(e) => handleChange('inventory_number', e.target.value)}
+                  className="bg-zinc-900 border-zinc-700"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-zinc-300">Количество</Label>
+                <Label className="text-zinc-300">Серийный №</Label>
+                <Input
+                  value={object.serial_number || ''}
+                  onChange={(e) => handleChange('serial_number', e.target.value)}
+                  className="bg-zinc-900 border-zinc-700"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Год</Label>
                 <Input
                   type="number"
-                  min="1"
+                  value={object.year || ''}
+                  onChange={(e) => handleChange('year', e.target.value)}
+                  className="bg-zinc-900 border-zinc-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Кол-во</Label>
+                <Input
+                  type="number"
+                  min={1}
                   value={object.quantity || '1'}
                   onChange={(e) => handleChange('quantity', e.target.value)}
-                  className="h-12 bg-zinc-800 border-zinc-700"
+                  className="bg-zinc-900 border-zinc-700"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Сложность</Label>
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-zinc-700 bg-zinc-900 text-sm"
+                  value={object.complexity}
+                  onChange={(e) => handleChange('complexity', e.target.value)}
+                >
+                  <option value="S">S - Простой</option>
+                  <option value="M">M - Средний</option>
+                  <option value="L">L - Сложный</option>
+                </select>
               </div>
             </div>
 
-            {/* Condition */}
             <ComboInput
-              label="Техническое состояние"
+              label="Состояние"
               value={object.condition}
               options={CONDITION_OPTIONS}
               onChange={(v) => handleChange('condition', v)}
-              placeholder="Исправен, Требует ремонта..."
+              placeholder="Выберите состояние"
             />
-
-            {/* Complexity */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Сложность</Label>
-              <div className="flex gap-2">
-                {COMPLEXITY_OPTIONS.map(opt => (
-                  <Button
-                    key={opt.value}
-                    type="button"
-                    variant={object.complexity === opt.value ? 'default' : 'outline'}
-                    className={object.complexity === opt.value ? '' : 'border-zinc-700 text-zinc-400'}
-                    onClick={() => handleChange('complexity', opt.value)}
-                  >
-                    {opt.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
 
         {/* Location */}
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
-              Местонахождение
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Местоположение</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <ComboInput
                 label="Этаж"
                 value={object.floor}
                 options={floors}
                 onChange={(v) => handleChange('floor', v)}
-                placeholder="1, 2, 3..."
+                placeholder="№ этажа"
               />
               <div className="space-y-2">
-                <Label className="text-zinc-300">Кабинет / Комната</Label>
+                <Label className="text-zinc-300">Кабинет</Label>
                 <Input
                   value={object.room || ''}
                   onChange={(e) => handleChange('room', e.target.value)}
-                  placeholder="101, 205..."
-                  className="h-12 bg-zinc-800 border-zinc-700"
+                  placeholder="№ кабинета"
+                  className="bg-zinc-900 border-zinc-700"
                 />
               </div>
             </div>
@@ -470,159 +522,93 @@ export default function ObjectPage() {
               value={object.department}
               options={departments}
               onChange={(v) => handleChange('department', v)}
-              placeholder="Бухгалтерия, IT..."
+              placeholder="Выберите отдел"
             />
 
             <ComboInput
-              label="МОЛ (Материально ответственное лицо)"
+              label="МОЛ"
               value={object.mol}
               options={mols}
               onChange={(v) => handleChange('mol', v)}
-              placeholder="Иванов И.И."
+              placeholder="Материально-ответственное лицо"
             />
           </CardContent>
         </Card>
 
         {/* Notes */}
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
-              Примечание
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Примечания</CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea
+            <textarea
+              className="w-full h-24 px-3 py-2 rounded-md border border-zinc-700 bg-zinc-900 text-sm resize-none"
               value={object.notes || ''}
               onChange={(e) => handleChange('notes', e.target.value)}
-              placeholder="Дополнительная информация..."
-              className="bg-zinc-800 border-zinc-700 min-h-[60px]"
+              placeholder="Дополнительная информация"
             />
           </CardContent>
         </Card>
 
-        {/* Photos */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
-              Фото
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isNew || uploadingPhoto}
-              className="border-zinc-700"
-              data-testid="add-photo-btn"
-            >
-              {uploadingPhoto ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Camera className="w-4 h-4 mr-2" />
-              )}
-              {isNew ? 'Сохраните сначала' : 'Добавить фото'}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handlePhotoUpload}
-            />
-          </CardHeader>
-          <CardContent>
-            {object.photos?.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2">
-                {object.photos.map((url, i) => (
-                  <div key={i} className="aspect-square rounded overflow-hidden bg-zinc-800 relative group">
-                    <img 
-                      src={`${process.env.REACT_APP_BACKEND_URL}${url}`} 
-                      alt={`Фото ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-zinc-500">
-                <Camera className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">{isNew ? 'Сохраните объект, чтобы добавить фото' : 'Нет фото'}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Audit Log Button */}
-        {!isNew && auditLog.length > 0 && (
-          <Dialog open={showHistory} onOpenChange={setShowHistory}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="w-full border-zinc-700 text-zinc-300"
-                data-testid="show-history-btn"
-              >
-                <History className="w-4 h-4 mr-2" />
-                История изменений ({auditLog.length})
+        {/* History Panel */}
+        {showHistory && auditLog.length > 0 && (
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                История изменений
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setShowHistory(false)}>
+                <X className="w-4 h-4" />
               </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="font-['Barlow_Condensed'] uppercase">
-                  История изменений
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3 mt-4">
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-60 overflow-y-auto">
                 {auditLog.map((log, i) => (
-                  <div key={i} className="p-3 bg-zinc-800 rounded border border-zinc-700">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-primary uppercase">
-                        {log.action}
-                      </span>
-                      <span className="text-xs text-zinc-500">
-                        {new Date(log.timestamp).toLocaleString('ru-RU')}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-400">
-                      <User className="w-3 h-3 inline mr-1" />
-                      {log.user_name}
+                  <div key={i} className="text-sm border-l-2 border-primary pl-3">
+                    <p className="text-zinc-400 text-xs">
+                      {new Date(log.timestamp).toLocaleString('ru-RU')}
+                    </p>
+                    <p className="text-zinc-300">
+                      <span className="font-medium">{log.user_name}</span>: {log.action}
                     </p>
                   </div>
                 ))}
               </div>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
         )}
+      </div>
 
-        {/* Action Buttons */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-zinc-950/95 backdrop-blur-sm border-t border-zinc-800">
-          <div className="flex gap-3 max-w-lg mx-auto">
-            {!isNew && object.status === 'new' && (
-              <Button
-                onClick={handleVerify}
-                variant="outline"
-                className="flex-1 h-12 border-emerald-600 text-emerald-500 hover:bg-emerald-900/20"
-                data-testid="verify-btn"
-              >
-                <CheckCircle className="w-5 h-5 mr-2" />
-                На проверку
-              </Button>
+      {/* Fixed Bottom Actions */}
+      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 p-4">
+        <div className="flex gap-3 max-w-2xl mx-auto">
+          <Button
+            variant="default"
+            className="flex-1 h-12"
+            onClick={handleSave}
+            disabled={saving}
+            data-testid="save-object-btn"
+          >
+            {saving ? (
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            ) : (
+              <Save className="w-5 h-5 mr-2" />
             )}
+            Сохранить
+          </Button>
+          
+          {!isNew && object.status === 'new' && (
             <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 h-12 bg-primary hover:bg-primary/90"
-              data-testid="save-btn"
+              variant="outline"
+              className="h-12"
+              onClick={handleVerify}
+              data-testid="verify-btn"
             >
-              {saving ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <Save className="w-5 h-5 mr-2" />
-                  Сохранить
-                </>
-              )}
+              <Send className="w-5 h-5 mr-2" />
+              На проверку
             </Button>
-          </div>
+          )}
         </div>
       </div>
     </div>
