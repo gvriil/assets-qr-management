@@ -91,8 +91,10 @@ export default function ExportPage() {
         timeout: 180000 // 3 min timeout
       });
 
+      // Create blob with proper type
       const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
+      const docName = DOCUMENT_TYPES[docType].name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
       
       if (action === 'preview') {
         setPreviewUrl(url);
@@ -106,14 +108,23 @@ export default function ExportPage() {
         }
         toast.success('Открыто окно печати');
       } else {
+        // Download file - use a more reliable approach
         const link = document.createElement('a');
         link.href = url;
-        const docName = DOCUMENT_TYPES[docType].name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
-        link.setAttribute('download', `${docName}.pdf`);
+        link.download = `${docName}.pdf`;
+        link.style.display = 'none';
         document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
+        
+        // Use setTimeout to ensure the link is in DOM
+        setTimeout(() => {
+          link.click();
+          // Cleanup after download starts
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+        }, 0);
+        
         toast.success('Файл скачан');
       }
     } catch (err) {
