@@ -621,10 +621,12 @@ async def create_object(obj: ObjectCreate, user: dict = Depends(get_current_user
 async def list_objects(
     status: Optional[str] = None,
     category: Optional[str] = None,
+    category_id: Optional[str] = None,
     floor: Optional[str] = None,
     department: Optional[str] = None,
     search: Optional[str] = None,
     assigned_to: Optional[str] = None,
+    sort: Optional[str] = "created_desc",
     skip: int = 0,
     limit: int = 100,
     user: dict = Depends(get_current_user)
@@ -634,6 +636,11 @@ async def list_objects(
         query["status"] = status
     if category:
         query["category"] = category
+    if category_id:
+        # Get category name by ID
+        cat = await db.categories.find_one({"id": category_id}, {"_id": 0})
+        if cat:
+            query["category"] = cat.get("name")
     if floor:
         query["floor"] = floor
     if department:
@@ -651,18 +658,35 @@ async def list_objects(
             {"external_id": {"$regex": search, "$options": "i"}}
         ]
     
-    objects = await db.objects.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    # Sort options
+    sort_map = {
+        "name_asc": [("name", 1)],
+        "name_desc": [("name", -1)],
+        "created_desc": [("created_at", -1)],
+        "created_asc": [("created_at", 1)],
+        "floor_asc": [("floor", 1), ("room", 1)],
+        "category_asc": [("category", 1), ("name", 1)],
+        "status_asc": [("status", 1), ("name", 1)]
+    }
+    sort_spec = sort_map.get(sort, [("created_at", -1)])
+    
+    objects = await db.objects.find(query, {"_id": 0}).sort(sort_spec).skip(skip).limit(limit).to_list(limit)
     return [ObjectResponse(**o) for o in objects]
 
 @api_router.get("/objects/count")
 async def count_objects(
     status: Optional[str] = None,
+    category_id: Optional[str] = None,
     assigned_to: Optional[str] = None,
     user: dict = Depends(get_current_user)
 ):
     query = {}
     if status:
         query["status"] = status
+    if category_id:
+        cat = await db.categories.find_one({"id": category_id}, {"_id": 0})
+        if cat:
+            query["category"] = cat.get("name")
     if assigned_to:
         query["assigned_to"] = assigned_to
     count = await db.objects.count_documents(query)
