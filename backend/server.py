@@ -874,7 +874,6 @@ async def get_batch_pdf(batch_id: str, user: dict = Depends(get_current_user)):
     margin_y = 10 * mm
     
     for idx, code in enumerate(codes):
-        page_idx = idx // (cols * rows)
         pos_on_page = idx % (cols * rows)
         col = pos_on_page % cols
         row = pos_on_page // cols
