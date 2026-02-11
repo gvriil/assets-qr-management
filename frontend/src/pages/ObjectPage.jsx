@@ -416,7 +416,7 @@ export default function ObjectPage() {
                 value={object.name || ''}
                 onChange={(e) => handleChange('name', e.target.value)}
                 placeholder="Введите название объекта"
-                className="bg-zinc-900 border-zinc-700"
+                className="bg-zinc-900 border-zinc-700 text-white"
                 data-testid="object-name-input"
               />
             </div>
