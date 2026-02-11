@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class InventoryAPITester:
-    def __init__(self, base_url: str = "https://field-track-2.preview.emergentagent.com"):
+    def __init__(self, base_url: str = "https://asset-tracker-427.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.user_data = None
