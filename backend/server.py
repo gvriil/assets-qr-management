@@ -918,7 +918,11 @@ async def mark_spoiled(batch_id: str, count: int = 1, user: dict = Depends(get_c
 # ==================== IMPORT ROUTES ====================
 
 @api_router.post("/import/preview")
-async def preview_import(file: UploadFile = File(...), user: dict = Depends(require_roles(UserRole.ADMIN, UserRole.OPERATOR))):
+async def preview_import(
+    file: UploadFile = File(...), 
+    preview_rows: int = Query(default=50, le=100),
+    user: dict = Depends(require_roles(UserRole.ADMIN, UserRole.OPERATOR))
+):
     import pandas as pd
     
     content = await file.read()
@@ -933,9 +937,9 @@ async def preview_import(file: UploadFile = File(...), user: dict = Depends(requ
         df = df.where(pd.notnull(df), None)
         
         columns = df.columns.tolist()
-        # Convert preview to serializable format
+        # Convert preview to serializable format - use requested preview_rows
         preview = []
-        for _, row in df.head(5).iterrows():
+        for _, row in df.head(preview_rows).iterrows():
             preview.append({col: (str(val) if val is not None else "") for col, val in row.items()})
         
         total_rows = len(df)
@@ -944,7 +948,8 @@ async def preview_import(file: UploadFile = File(...), user: dict = Depends(requ
             "columns": columns,
             "preview": preview,
             "total_rows": total_rows,
-            "filename": file.filename
+            "filename": file.filename,
+            "preview_count": len(preview)
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Ошибка чтения файла: {str(e)}")
