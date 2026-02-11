@@ -1,0 +1,130 @@
+{
+  "summary": {
+    "total_tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "test_results": [
+    {
+      "test_name": "Health Check",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.523606"
+    },
+    {
+      "test_name": "Admin Login (2FA trigger)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.814993"
+    },
+    {
+      "test_name": "Admin Token Validation",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.894905"
+    },
+    {
+      "test_name": "Admin Authentication Complete",
+      "success": true,
+      "details": "Admin: \u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.895603"
+    },
+    {
+      "test_name": "Create Invite Code (field_worker)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.934275"
+    },
+    {
+      "test_name": "Invite Code Generated",
+      "success": true,
+      "details": "Code: INV-ECGK-JAIH",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.935121"
+    },
+    {
+      "test_name": "List Invite Codes",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.975676"
+    },
+    {
+      "test_name": "Invite List Retrieved",
+      "success": true,
+      "details": "Found 3 invites",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:56.976381"
+    },
+    {
+      "test_name": "User Registration with Invite Code",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.252187"
+    },
+    {
+      "test_name": "User Registration Success",
+      "success": true,
+      "details": "User ID: 6923f033-c423-4108-a4ab-401224f16d7a",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.253632"
+    },
+    {
+      "test_name": "Admin Direct User Creation",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.549064"
+    },
+    {
+      "test_name": "Admin User Creation Success",
+      "success": true,
+      "details": "User ID: b5ed4fc0-f57a-42ac-a0ab-f845eeb86cec",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.549660"
+    },
+    {
+      "test_name": "Test User Login",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.815389"
+    },
+    {
+      "test_name": "List Users (Admin)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.855516"
+    },
+    {
+      "test_name": "Users List Retrieved",
+      "success": true,
+      "details": "Found 14 users",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.856137"
+    },
+    {
+      "test_name": "Registration with Invalid Invite",
+      "success": true,
+      "details": "Status: 400 (expected 400)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.900808"
+    },
+    {
+      "test_name": "Unauthorized Invite Creation",
+      "success": true,
+      "details": "Status: 403 (expected 403)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:53:57.980118"
+    }
+  ],
+  "timestamp": "2026-02-11T11:53:57.981001"
+}
