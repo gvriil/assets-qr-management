@@ -1,0 +1,144 @@
+{
+  "summary": {
+    "total_tests": 19,
+    "passed": 19,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "test_results": [
+    {
+      "test_name": "Health Check",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:19.784374"
+    },
+    {
+      "test_name": "Admin Login (2FA trigger)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.048945"
+    },
+    {
+      "test_name": "2FA Code Retrieved",
+      "success": true,
+      "details": "Code: 734528",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.049549"
+    },
+    {
+      "test_name": "Admin 2FA Verification",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.090043"
+    },
+    {
+      "test_name": "Admin Authentication Complete",
+      "success": true,
+      "details": "Admin: \u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.090612"
+    },
+    {
+      "test_name": "Create Object with New Fields",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.132443"
+    },
+    {
+      "test_name": "Object Creation Success",
+      "success": true,
+      "details": "Object ID: 86521183-0204-4194-bc73-816097041e15, QR: INV-86521183",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.133063"
+    },
+    {
+      "test_name": "Object Fields Validation",
+      "success": true,
+      "details": "All new fields saved correctly",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.133086"
+    },
+    {
+      "test_name": "Retrieve Created Object",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.176376"
+    },
+    {
+      "test_name": "Retrieve Object by QR Code",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.218011"
+    },
+    {
+      "test_name": "Update Object Fields",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.259266"
+    },
+    {
+      "test_name": "List Objects",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.300192"
+    },
+    {
+      "test_name": "Search Objects",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.341050"
+    },
+    {
+      "test_name": "Object Search Success",
+      "success": true,
+      "details": "Found 1 objects",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.341630"
+    },
+    {
+      "test_name": "Excel Import Preview Endpoint",
+      "success": true,
+      "details": "Endpoint exists and validates file requirement",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.393989"
+    },
+    {
+      "test_name": "List Categories",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.435793"
+    },
+    {
+      "test_name": "List References",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.470829"
+    },
+    {
+      "test_name": "Create Invite Code (field_worker)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.509541"
+    },
+    {
+      "test_name": "Invite Code Generated",
+      "success": true,
+      "details": "Code: INV-2LZZ-1S7P",
+      "response_data": null,
+      "timestamp": "2026-02-11T12:41:20.510172"
+    }
+  ],
+  "timestamp": "2026-02-11T12:41:20.510458"
+}
