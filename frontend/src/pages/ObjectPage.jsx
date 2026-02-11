@@ -445,7 +445,7 @@ export default function ObjectPage() {
                 <Input
                   value={object.inventory_number || ''}
                   onChange={(e) => handleChange('inventory_number', e.target.value)}
-                  className="bg-zinc-900 border-zinc-700"
+                  className="bg-zinc-900 border-zinc-700 text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -453,7 +453,7 @@ export default function ObjectPage() {
                 <Input
                   value={object.serial_number || ''}
                   onChange={(e) => handleChange('serial_number', e.target.value)}
-                  className="bg-zinc-900 border-zinc-700"
+                  className="bg-zinc-900 border-zinc-700 text-white"
                 />
               </div>
             </div>
