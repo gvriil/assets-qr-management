@@ -224,6 +224,13 @@ def verify_password(password: str, hashed: str) -> bool:
 def generate_2fa_code() -> str:
     return ''.join(random.choices(string.digits, k=6))
 
+def generate_invite_code() -> str:
+    """Generate a readable invite code like INV-XXXX-XXXX"""
+    chars = string.ascii_uppercase + string.digits
+    part1 = ''.join(random.choices(chars, k=4))
+    part2 = ''.join(random.choices(chars, k=4))
+    return f"INV-{part1}-{part2}"
+
 def create_token(user_id: str, email: str, role: str) -> str:
     payload = {
         "sub": user_id,
