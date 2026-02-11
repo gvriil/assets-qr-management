@@ -60,10 +60,12 @@ export default function ObjectPage() {
     inventory_number: '',
     year: '',
     condition: '',
-    floor: sessionDefaults.floor || '',
-    room: sessionDefaults.room || '',
-    department: sessionDefaults.department || '',
-    mol: sessionDefaults.mol || '',
+    oiv: sessionDefaults.oiv || '',  // ОИВ
+    floor: sessionDefaults.floor || '',  // ЭТАЖ
+    management: sessionDefaults.management || '',  // УПРАВЛЕНИЕ
+    department: sessionDefaults.department || '',  // ОТДЕЛ
+    room: sessionDefaults.room || '',  // МЕСТО/помещение
+    mol: sessionDefaults.mol || '',  // ФИО
     quantity: '1',
     complexity: 'S',
     qr_code: qrFromUrl || '',
