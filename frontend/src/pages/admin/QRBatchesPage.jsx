@@ -268,42 +268,34 @@ export default function QRBatchesPage() {
                   Данные для этикетки (будут напечатаны рядом с QR):
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">ОИВ</Label>
-                    <Input
-                      placeholder="ОИВ..."
-                      value={newBatch.oiv}
-                      onChange={(e) => setNewBatch(prev => ({ ...prev, oiv: e.target.value }))}
-                      data-testid="batch-oiv-input"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Этаж</Label>
-                    <Input
-                      placeholder="2"
-                      value={newBatch.floor}
-                      onChange={(e) => setNewBatch(prev => ({ ...prev, floor: e.target.value }))}
-                      data-testid="batch-floor-input"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Управление</Label>
-                    <Input
-                      placeholder="Управление..."
-                      value={newBatch.department}
-                      onChange={(e) => setNewBatch(prev => ({ ...prev, department: e.target.value }))}
-                      data-testid="batch-department-input"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Отдел</Label>
-                    <Input
-                      placeholder="Отдел..."
-                      value={newBatch.section}
-                      onChange={(e) => setNewBatch(prev => ({ ...prev, section: e.target.value }))}
-                      data-testid="batch-section-input"
-                    />
-                  </div>
+                  <ComboSelect
+                    label="ОИВ"
+                    value={newBatch.oiv}
+                    options={references.oivs}
+                    onChange={(v) => setNewBatch(prev => ({ ...prev, oiv: v }))}
+                    placeholder="Выберите ОИВ"
+                  />
+                  <ComboSelect
+                    label="Этаж"
+                    value={newBatch.floor}
+                    options={references.floors}
+                    onChange={(v) => setNewBatch(prev => ({ ...prev, floor: v }))}
+                    placeholder="№ этажа"
+                  />
+                  <ComboSelect
+                    label="Управление"
+                    value={newBatch.department}
+                    options={references.managements}
+                    onChange={(v) => setNewBatch(prev => ({ ...prev, department: v }))}
+                    placeholder="Выберите управление"
+                  />
+                  <ComboSelect
+                    label="Отдел"
+                    value={newBatch.section}
+                    options={references.departments}
+                    onChange={(v) => setNewBatch(prev => ({ ...prev, section: v }))}
+                    placeholder="Выберите отдел"
+                  />
                   <div className="space-y-1">
                     <Label className="text-xs">Место / Помещение</Label>
                     <Input
@@ -313,15 +305,13 @@ export default function QRBatchesPage() {
                       data-testid="batch-location-input"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">ФИО (МОЛ)</Label>
-                    <Input
-                      placeholder="Иванов И.И."
-                      value={newBatch.mol}
-                      onChange={(e) => setNewBatch(prev => ({ ...prev, mol: e.target.value }))}
-                      data-testid="batch-mol-input"
-                    />
-                  </div>
+                  <ComboSelect
+                    label="ФИО (МОЛ)"
+                    value={newBatch.mol}
+                    options={references.mols}
+                    onChange={(v) => setNewBatch(prev => ({ ...prev, mol: v }))}
+                    placeholder="Выберите МОЛ"
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   Формат этикетки: ОИВ - ЭТАЖ - УПРАВЛЕНИЕ - ОТДЕЛ - МЕСТО - ФИО
