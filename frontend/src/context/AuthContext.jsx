@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -16,23 +16,40 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  const api = axios.create({
-    baseURL: API,
-    headers: token ? { Authorization: `Bearer ${token}` } : {}
-  });
-
-  api.interceptors.response.use(
-    (res) => res,
-    (err) => {
-      if (err.response?.status === 401) {
-        logout();
+  // Create api instance that updates with token
+  const api = useMemo(() => {
+    const instance = axios.create({
+      baseURL: API,
+    });
+    
+    // Add request interceptor to always use current token
+    instance.interceptors.request.use((config) => {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken) {
+        config.headers.Authorization = `Bearer ${currentToken}`;
       }
-      return Promise.reject(err);
-    }
-  );
+      return config;
+    });
+    
+    // Add response interceptor for 401
+    instance.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+        }
+        return Promise.reject(err);
+      }
+    );
+    
+    return instance;
+  }, []);
 
   const fetchUser = useCallback(async () => {
-    if (!token) {
+    const currentToken = localStorage.getItem('token');
+    if (!currentToken) {
       setLoading(false);
       return;
     }
@@ -40,23 +57,25 @@ export const AuthProvider = ({ children }) => {
       const res = await api.get('/auth/me');
       setUser(res.data);
     } catch {
-      logout();
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [api]);
 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
   const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
+    const res = await axios.post(`${API}/auth/login`, { email, password });
     return res.data;
   };
 
   const verify2FA = async (email, code) => {
-    const res = await api.post('/auth/verify-2fa', { email, code });
+    const res = await axios.post(`${API}/auth/verify-2fa`, { email, code });
     const { access_token, user: userData } = res.data;
     localStorage.setItem('token', access_token);
     setToken(access_token);
