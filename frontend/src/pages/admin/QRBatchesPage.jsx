@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, Plus, QrCode, Download, Printer, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, QrCode, Download, Printer, AlertTriangle, Eye, ExternalLink } from 'lucide-react';
 
 export default function QRBatchesPage() {
   const { api } = useAuth();
@@ -18,10 +18,17 @@ export default function QRBatchesPage() {
   const [newBatch, setNewBatch] = useState({
     name: '',
     count: 100,
-    prefix: ''
+    prefix: '',
+    oiv: '',
+    floor: '',
+    department: '',
+    section: '',
+    location: '',
+    mol: ''
   });
   const [creating, setCreating] = useState(false);
   const [downloading, setDownloading] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
     loadBatches();
