@@ -109,6 +109,16 @@ export default function ScannerPage() {
       navigate(`/object/new?qr=${encodeURIComponent(code)}`);
     }
   };
+  
+  const handleClearSession = () => {
+    if (window.confirm('Сбросить сохранённые поля сессии (этаж, отдел, МОЛ)?')) {
+      clearFieldSession();
+      toast.success('Сессия сброшена');
+    }
+  };
+
+  // Check if session has data
+  const hasSession = session.floor || session.department || session.mol;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
