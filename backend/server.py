@@ -567,32 +567,22 @@ async def create_object(obj: ObjectCreate, user: dict = Depends(get_current_user
     qr_code = f"INV-{object_id[:8].upper()}"
     now = datetime.now(timezone.utc).isoformat()
     
-    # Get category name if provided
-    category_name = None
-    if obj.category_id:
-        cat = await db.categories.find_one({"id": obj.category_id}, {"_id": 0})
-        if cat:
-            category_name = cat.get("name")
-    
-    # Get MOL name if provided
-    mol_name = None
-    if obj.mol_id:
-        mol = await db.references.find_one({"id": obj.mol_id, "type": "mol"}, {"_id": 0})
-        if mol:
-            mol_name = mol.get("name")
-    
     obj_doc = {
         "id": object_id,
         "name": obj.name,
         "qr_code": qr_code,
-        "category_id": obj.category_id,
-        "category_name": category_name,
+        "category": obj.category,
         "description": obj.description,
         "characteristics": obj.characteristics,
+        "serial_number": obj.serial_number,
+        "inventory_number": obj.inventory_number,
+        "year": obj.year,
+        "condition": obj.condition,
         "floor": obj.floor,
+        "room": obj.room,
         "department": obj.department,
-        "mol_id": obj.mol_id,
-        "mol_name": mol_name,
+        "mol": obj.mol,
+        "quantity": obj.quantity or "1",
         "complexity": obj.complexity,
         "status": ObjectStatus.NEW,
         "photos": [],
@@ -600,7 +590,8 @@ async def create_object(obj: ObjectCreate, user: dict = Depends(get_current_user
         "updated_at": now,
         "created_by": user["id"],
         "assigned_to": user["id"],
-        "external_id": obj.external_id
+        "external_id": obj.external_id,
+        "notes": obj.notes
     }
     
     await db.objects.insert_one(obj_doc)
