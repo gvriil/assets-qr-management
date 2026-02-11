@@ -127,7 +127,7 @@ export default function ExportPage() {
                   <SelectValue placeholder="Все статусы" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все статусы</SelectItem>
+                  <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="new">Новые</SelectItem>
                   <SelectItem value="pending">На проверке</SelectItem>
                   <SelectItem value="verified">Подтверждённые</SelectItem>
@@ -225,7 +225,7 @@ export default function ExportPage() {
                   <SelectValue placeholder="Все объекты" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все объекты</SelectItem>
+                  <SelectItem value="all">Все объекты</SelectItem>
                   <SelectItem value="verified">Только подтверждённые</SelectItem>
                   <SelectItem value="pending">На проверке</SelectItem>
                   <SelectItem value="new">Новые</SelectItem>
