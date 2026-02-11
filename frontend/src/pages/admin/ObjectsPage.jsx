@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { toast } from 'sonner';
-import { Loader2, Search, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Search, ExternalLink, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 const STATUS_LABELS = {
   new: 'Новый',
@@ -21,6 +21,16 @@ const STATUS_COLORS = {
   verified: 'bg-emerald-500',
   rejected: 'bg-red-500'
 };
+
+const SORT_OPTIONS = [
+  { value: 'name_asc', label: 'Название (А-Я)' },
+  { value: 'name_desc', label: 'Название (Я-А)' },
+  { value: 'created_desc', label: 'Дата создания (новые)' },
+  { value: 'created_asc', label: 'Дата создания (старые)' },
+  { value: 'floor_asc', label: 'Этаж (1-99)' },
+  { value: 'category_asc', label: 'Категория (А-Я)' },
+  { value: 'status_asc', label: 'Статус' }
+];
 
 export default function ObjectsPage() {
   const navigate = useNavigate();
