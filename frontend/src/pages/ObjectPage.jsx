@@ -573,11 +573,38 @@ export default function ObjectPage() {
           </CardHeader>
           <CardContent>
             <textarea
-              className="w-full h-24 px-3 py-2 rounded-md border border-zinc-700 bg-zinc-900 text-sm resize-none"
+              className="w-full h-24 px-3 py-2 rounded-md border border-zinc-700 bg-zinc-900 text-white text-sm resize-none"
               value={object.notes || ''}
               onChange={(e) => handleChange('notes', e.target.value)}
               placeholder="Дополнительная информация"
             />
+          </CardContent>
+        </Card>
+
+        {/* QR Code Section */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              QR код
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Код объекта</Label>
+              <Input
+                value={object.qr_code || ''}
+                onChange={(e) => handleChange('qr_code', e.target.value)}
+                placeholder="Введите или отсканируйте QR код"
+                className="bg-zinc-900 border-zinc-700 text-white font-mono"
+                data-testid="qr-code-input"
+              />
+            </div>
+            {!object.qr_code && (
+              <p className="text-xs text-amber-500">
+                QR код можно добавить вручную или отсканировать при создании объекта
+              </p>
+            )}
           </CardContent>
         </Card>
 
