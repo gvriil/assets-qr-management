@@ -108,8 +108,10 @@ export default function ObjectPage() {
       setObject(res.data);
       cacheObject(res.data);
       
-      const logRes = await api.get(`/audit-log?object_id=${id}`);
-      setAuditLog(logRes.data);
+      // Audit log is stored inside the object
+      if (res.data.audit_log) {
+        setAuditLog(res.data.audit_log);
+      }
     } catch (err) {
       toast.error('Ошибка загрузки объекта');
       navigate('/scanner');
