@@ -115,10 +115,15 @@ export default function ImportPage() {
       
       // Auto-map columns by name similarity
       const autoMapping = {};
+      console.log('Columns from file:', res.data.columns);
+      
       res.data.columns.forEach(col => {
         const colLower = col.toLowerCase();
+        console.log('Processing column:', col, '->', colLower);
+        
         if (colLower.includes('наимен') || colLower.includes('название') || colLower === 'name') {
           autoMapping['name'] = col;
+          console.log('Mapped name to:', col);
         } else if (colLower.includes('катег') || colLower === 'category') {
           autoMapping['category'] = col;
         } else if (colLower.includes('характер') || colLower.includes('описан') || colLower === 'description') {
@@ -147,6 +152,8 @@ export default function ImportPage() {
           autoMapping['external_id'] = col;
         }
       });
+      
+      console.log('Final autoMapping:', autoMapping);
       setMapping(autoMapping);
       
       setStep('mapping');
