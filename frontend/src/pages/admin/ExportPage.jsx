@@ -7,7 +7,7 @@ import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { toast } from 'sonner';
-import { Loader2, Download, FileSpreadsheet, FileText, Image, Printer, BookOpen } from 'lucide-react';
+import { Loader2, Download, FileSpreadsheet, FileText, Image, Printer, BookOpen, Eye } from 'lucide-react';
 
 export default function ExportPage() {
   const { api } = useAuth();
@@ -24,7 +24,7 @@ export default function ExportPage() {
   const [catalogStatus, setCatalogStatus] = useState('all');
   const [catalogLoading, setCatalogLoading] = useState(false);
 
-  const handleExport = async () => {
+  const handleExport = async (action = 'download') => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -35,23 +35,33 @@ export default function ExportPage() {
         responseType: 'blob'
       });
 
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `inventory_export.${format}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success('Экспорт завершён');
+      const blob = new Blob([res.data], { 
+        type: format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      
+      if (action === 'preview') {
+        window.open(url, '_blank');
+        toast.success('Файл открыт в новой вкладке');
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `inventory_export.${format}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('Файл скачан');
+      }
     } catch (err) {
+      console.error('Export error:', err);
       toast.error('Ошибка экспорта');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCatalogExport = async () => {
+  const handleCatalogExport = async (action = 'download') => {
     setCatalogLoading(true);
     try {
       const params = new URLSearchParams();
@@ -65,18 +75,32 @@ export default function ExportPage() {
         timeout: 120000 // 2 min timeout for large catalogs with photos
       });
 
-      const contentType = res.headers['content-type'];
       const ext = catalogFormat === 'pdf' ? 'pdf' : 'xlsx';
+      const mimeType = catalogFormat === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const blob = new Blob([res.data], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
       
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `inventory_catalog_${pageSize}${includePhotos ? '_with_photos' : ''}.${ext}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success('Каталог сформирован');
+      if (action === 'preview') {
+        window.open(url, '_blank');
+        toast.success('Файл открыт в новой вкладке');
+      } else if (action === 'print' && catalogFormat === 'pdf') {
+        const printWindow = window.open(url, '_blank');
+        if (printWindow) {
+          printWindow.onload = () => {
+            setTimeout(() => printWindow.print(), 500);
+          };
+        }
+        toast.success('Открыто окно печати');
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `inventory_catalog_${pageSize}${includePhotos ? '_with_photos' : ''}.${ext}`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('Файл скачан');
+      }
     } catch (err) {
       console.error('Catalog export error:', err);
       toast.error('Ошибка формирования каталога');
