@@ -53,10 +53,22 @@ export default function QRBatchesPage() {
 
     setCreating(true);
     try {
-      await api.post('/qr-batches', newBatch);
+      await api.post('/qr-batches', {
+        name: newBatch.name,
+        count: newBatch.count,
+        prefix: newBatch.prefix,
+        label_data: {
+          oiv: newBatch.oiv,
+          floor: newBatch.floor,
+          department: newBatch.department,
+          section: newBatch.section,
+          location: newBatch.location,
+          mol: newBatch.mol
+        }
+      });
       toast.success('Партия создана');
       setShowCreateDialog(false);
-      setNewBatch({ name: '', count: 100, prefix: '' });
+      setNewBatch({ name: '', count: 100, prefix: '', oiv: '', floor: '', department: '', section: '', location: '', mol: '' });
       loadBatches();
     } catch (err) {
       toast.error('Ошибка создания партии');
@@ -65,22 +77,39 @@ export default function QRBatchesPage() {
     }
   };
 
-  const handleDownloadPDF = async (batchId, batchName) => {
+  const handleDownloadPDF = async (batchId, batchName, action = 'download') => {
     setDownloading(batchId);
     try {
       const res = await api.get(`/qr-batches/${batchId}/pdf`, {
         responseType: 'blob'
       });
       
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `qr_batch_${batchName}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       
-      toast.success('PDF скачан');
+      if (action === 'preview') {
+        // Open in new tab for preview
+        setPreviewUrl(url);
+        window.open(url, '_blank');
+      } else if (action === 'print') {
+        // Open print dialog
+        const printWindow = window.open(url, '_blank');
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        }
+      } else {
+        // Download
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `qr_batch_${batchName}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast.success('PDF скачан');
+      }
+      
       loadBatches();
     } catch (err) {
       toast.error('Ошибка скачивания PDF');
