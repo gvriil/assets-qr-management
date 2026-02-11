@@ -158,6 +158,17 @@ export default function ObjectsPage() {
             <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>
+
+        <select 
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm w-[200px]"
+          value={filters.sort} 
+          onChange={(e) => handleFilterChange('sort', e.target.value)}
+          data-testid="sort-select"
+        >
+          {SORT_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </div>
 
       {/* Table */}
