@@ -1552,6 +1552,7 @@ async def qa_queue(
     filter_type: str = "pending",  # pending, rejected, no_photo, duplicates
     skip: int = 0,
     limit: int = 50,
+    sort: str = "date_desc",  # date_desc, date_asc, name_asc, floor_asc, user_asc
     user: dict = Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))
 ):
     if filter_type == "pending":
@@ -1563,7 +1564,17 @@ async def qa_queue(
     else:
         query = {"status": ObjectStatus.PENDING}
     
-    objects = await db.objects.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    # Sort options
+    sort_options = {
+        "date_desc": [("updated_at", -1)],
+        "date_asc": [("updated_at", 1)],
+        "name_asc": [("name", 1)],
+        "floor_asc": [("floor", 1), ("room", 1)],
+        "user_asc": [("assigned_to", 1), ("updated_at", -1)]
+    }
+    sort_spec = sort_options.get(sort, [("updated_at", -1)])
+    
+    objects = await db.objects.find(query, {"_id": 0}).sort(sort_spec).skip(skip).limit(limit).to_list(limit)
     total = await db.objects.count_documents(query)
     
     return {"items": [ObjectResponse(**o) for o in objects], "total": total}
