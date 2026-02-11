@@ -552,7 +552,7 @@ export default function ObjectPage() {
                   value={object.room || ''}
                   onChange={(e) => handleChange('room', e.target.value)}
                   placeholder="№ кабинета / помещения"
-                  className="bg-zinc-900 border-zinc-700"
+                  className="bg-zinc-900 border-zinc-700 text-white"
                 />
               </div>
               <ComboInput
