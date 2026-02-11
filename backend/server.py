@@ -128,35 +128,53 @@ class TokenResponse(BaseModel):
 # Object Models
 class ObjectCreate(BaseModel):
     name: str
-    category_id: Optional[str] = None
+    category: Optional[str] = None
     description: Optional[str] = None
     characteristics: Optional[str] = None
+    serial_number: Optional[str] = None
+    inventory_number: Optional[str] = None
+    year: Optional[str] = None
+    condition: Optional[str] = None
     floor: Optional[str] = None
+    room: Optional[str] = None
     department: Optional[str] = None
-    mol_id: Optional[str] = None
+    mol: Optional[str] = None
+    quantity: Optional[str] = "1"
     complexity: str = ComplexityLevel.SIMPLE
     external_id: Optional[str] = None
+    notes: Optional[str] = None
 
 class ObjectUpdate(BaseModel):
     name: Optional[str] = None
-    category_id: Optional[str] = None
+    category: Optional[str] = None
     description: Optional[str] = None
     characteristics: Optional[str] = None
+    serial_number: Optional[str] = None
+    inventory_number: Optional[str] = None
+    year: Optional[str] = None
+    condition: Optional[str] = None
     floor: Optional[str] = None
+    room: Optional[str] = None
     department: Optional[str] = None
-    mol_id: Optional[str] = None
+    mol: Optional[str] = None
+    quantity: Optional[str] = None
     complexity: Optional[str] = None
     status: Optional[str] = None
+    notes: Optional[str] = None
 
 class ObjectResponse(BaseModel):
     id: str
     name: str
     qr_code: Optional[str] = None
-    category_id: Optional[str] = None
-    category_name: Optional[str] = None
+    category: Optional[str] = None
     description: Optional[str] = None
     characteristics: Optional[str] = None
+    serial_number: Optional[str] = None
+    inventory_number: Optional[str] = None
+    year: Optional[str] = None
+    condition: Optional[str] = None
     floor: Optional[str] = None
+    room: Optional[str] = None
     department: Optional[str] = None
     mol_id: Optional[str] = None
     mol_name: Optional[str] = None
