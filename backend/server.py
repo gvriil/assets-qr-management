@@ -1933,14 +1933,19 @@ async def get_stats_by_user(user: dict = Depends(require_roles(UserRole.ADMIN)))
     
     stats = await db.objects.aggregate(pipeline).to_list(100)
     
+    # Batch fetch all users to avoid N+1 query pattern
+    user_ids = [s["_id"] for s in stats if s["_id"]]
+    users_cursor = db.users.find({"id": {"$in": user_ids}}, {"_id": 0, "id": 1, "name": 1})
+    users_list = await users_cursor.to_list(100)
+    users_dict = {u["id"]: u["name"] for u in users_list}
+    
     # Enrich with user names
     result = []
     for s in stats:
         if s["_id"]:
-            u = await db.users.find_one({"id": s["_id"]}, {"_id": 0})
             result.append({
                 "user_id": s["_id"],
-                "user_name": u["name"] if u else "Неизвестно",
+                "user_name": users_dict.get(s["_id"], "Неизвестно"),
                 **{k: v for k, v in s.items() if k != "_id"}
             })
     
