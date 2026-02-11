@@ -1151,12 +1151,6 @@ async def export_catalog(
         elements.append(Paragraph(f"Всего объектов: {len(objects)}", small_style))
         elements.append(Spacer(1, 10*mm))
         
-        # Items per page based on size and photo inclusion
-        if page_size == "A3":
-            cols = 3 if include_photos else 4
-        else:
-            cols = 2 if include_photos else 3
-        
         for idx, obj in enumerate(objects):
             # Object card
             card_data = []
