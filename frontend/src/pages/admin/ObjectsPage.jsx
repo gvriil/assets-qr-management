@@ -188,7 +188,7 @@ export default function ObjectsPage() {
                   </TableCell>
                   <TableCell className="font-medium">{obj.name}</TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
-                    {obj.category_name || '-'}
+                    {obj.category || '-'}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-muted-foreground">
                     {obj.floor || '-'}
