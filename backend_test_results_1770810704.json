@@ -1,0 +1,132 @@
+{
+  "summary": {
+    "total_tests": 17,
+    "passed": 16,
+    "failed": 1,
+    "success_rate": 94.11764705882352
+  },
+  "test_results": [
+    {
+      "test_name": "Health Check",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.470902"
+    },
+    {
+      "test_name": "Admin Login (2FA trigger)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.733946"
+    },
+    {
+      "test_name": "Admin Token Validation",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.774771"
+    },
+    {
+      "test_name": "Admin Authentication Complete",
+      "success": true,
+      "details": "Admin: \u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.775368"
+    },
+    {
+      "test_name": "Create Invite Code (field_worker)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.817271"
+    },
+    {
+      "test_name": "Invite Code Generated",
+      "success": true,
+      "details": "Code: INV-WMB2-MLBX",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.817853"
+    },
+    {
+      "test_name": "List Invite Codes",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.859788"
+    },
+    {
+      "test_name": "Invite List Retrieved",
+      "success": true,
+      "details": "Found 2 invites",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:43.860378"
+    },
+    {
+      "test_name": "User Registration with Invite Code",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.129476"
+    },
+    {
+      "test_name": "User Registration Success",
+      "success": true,
+      "details": "User ID: a99dc629-8362-4cb7-bd41-2eae268ae3d7",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.130696"
+    },
+    {
+      "test_name": "Admin Direct User Creation",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.451994"
+    },
+    {
+      "test_name": "Admin User Creation Success",
+      "success": true,
+      "details": "User ID: fd204523-7801-4751-8c0e-439adfa2969b",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.454782"
+    },
+    {
+      "test_name": "Test User Login",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.759117"
+    },
+    {
+      "test_name": "List Users (Admin)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.819797"
+    },
+    {
+      "test_name": "Users List Retrieved",
+      "success": true,
+      "details": "Found 11 users",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.820474"
+    },
+    {
+      "test_name": "Registration with Invalid Invite",
+      "success": true,
+      "details": "Status: 400 (expected 400)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:44.874557"
+    },
+    {
+      "test_name": "Unauthorized Invite Creation",
+      "success": false,
+      "details": "Status: 403 (expected 401)",
+      "response_data": {
+        "detail": "Not authenticated"
+      },
+      "timestamp": "2026-02-11T11:51:44.916256"
+    }
+  ],
+  "timestamp": "2026-02-11T11:51:44.917153"
+}
