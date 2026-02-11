@@ -176,6 +176,29 @@ export default function ScannerPage() {
                     Админ-панель
                   </Button>
                 )}
+                
+                {/* Session Info */}
+                {hasSession && (
+                  <div className="pt-4 border-t border-zinc-800 mt-4">
+                    <p className="px-3 text-xs text-zinc-500 mb-2">Текущая сессия:</p>
+                    <div className="px-3 py-2 bg-zinc-800/50 rounded text-xs text-zinc-400 space-y-1">
+                      {session.floor && <div>Этаж: {session.floor}</div>}
+                      {session.department && <div>Отдел: {session.department}</div>}
+                      {session.mol && <div>МОЛ: {session.mol}</div>}
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="w-full justify-start text-amber-400 hover:text-amber-300 hover:bg-amber-900/20 mt-2"
+                      onClick={handleClearSession}
+                      data-testid="clear-session-btn"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Сбросить сессию
+                    </Button>
+                  </div>
+                )}
+                
                 <div className="pt-4 border-t border-zinc-800 mt-4">
                   <div className="px-3 py-2 text-sm text-zinc-500">
                     <User className="w-4 h-4 inline mr-2" />
