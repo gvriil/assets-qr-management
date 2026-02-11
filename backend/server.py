@@ -457,27 +457,26 @@ async def login(credentials: UserLogin):
     if not user.get("is_active", True):
         raise HTTPException(status_code=403, detail="Аккаунт деактивирован")
     
-    # Generate 2FA code
-    code = generate_2fa_code()
-    await db.two_fa_codes.update_one(
-        {"email": credentials.email},
-        {"$set": {
-            "code": code,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
-        }},
-        upsert=True
+    # Create token directly without 2FA
+    token = create_token(user["id"], user["email"], user["role"])
+    
+    await db.login_log.insert_one({
+        "user_id": user["id"],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "ip": "unknown"
+    })
+    
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=user["id"],
+            email=user["email"],
+            name=user["name"],
+            role=user["role"],
+            created_at=user["created_at"],
+            is_active=user.get("is_active", True)
+        )
     )
-    
-    logger.info(f"2FA code for {credentials.email}: {code}")
-    
-    # For MVP: return code in response (remove in production!)
-    return {
-        "message": "Код подтверждения отправлен", 
-        "requires_2fa": True, 
-        "email": credentials.email,
-        "dev_code": code  # MVP only - remove in production!
-    }
 
 @api_router.post("/auth/verify-2fa", response_model=TokenResponse)
 async def verify_2fa(data: Verify2FA):
