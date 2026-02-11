@@ -3,8 +3,14 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Badge } from '../../components/ui/badge';
+import { Switch } from '../../components/ui/switch';
+import { Label } from '../../components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Upload, FileSpreadsheet, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { 
+  Loader2, Upload, FileSpreadsheet, CheckCircle, AlertCircle, 
+  ArrowRight, Download, Eye, AlertTriangle, Info
+} from 'lucide-react';
 
 const FIELD_OPTIONS = [
   { value: 'name', label: 'Наименование', required: true },
@@ -24,16 +30,72 @@ const FIELD_OPTIONS = [
   { value: 'notes', label: 'Примечание' },
 ];
 
+// Validation functions for preview
+const validateRow = (row, mapping) => {
+  const errors = [];
+  
+  // Check required field - name
+  if (mapping.name) {
+    const nameValue = row[mapping.name];
+    if (!nameValue || String(nameValue).trim() === '') {
+      errors.push('Отсутствует наименование');
+    }
+  } else {
+    errors.push('Поле "Наименование" не сопоставлено');
+  }
+  
+  // Check quantity is a number
+  if (mapping.quantity) {
+    const qty = row[mapping.quantity];
+    if (qty && isNaN(Number(qty))) {
+      errors.push('Количество не является числом');
+    }
+  }
+  
+  // Check year format
+  if (mapping.year) {
+    const year = row[mapping.year];
+    if (year && (isNaN(Number(year)) || Number(year) < 1900 || Number(year) > 2100)) {
+      errors.push('Некорректный год выпуска');
+    }
+  }
+  
+  return errors;
+};
+
+// Transform row according to mapping
+const transformRow = (row, mapping) => {
+  const result = {};
+  FIELD_OPTIONS.forEach(opt => {
+    const sourceCol = mapping[opt.value];
+    if (sourceCol && row[sourceCol] !== undefined && row[sourceCol] !== null) {
+      result[opt.value] = String(row[sourceCol]).trim();
+    }
+  });
+  return result;
+};
+
 export default function ImportPage() {
   const { api } = useAuth();
   const fileInputRef = useRef(null);
   
-  const [step, setStep] = useState('upload'); // upload, mapping, result
+  const [step, setStep] = useState('upload'); // upload, mapping, preview, result
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [mapping, setMapping] = useState({});
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  
+  // Import options
+  const [options, setOptions] = useState({
+    skipEmptyRows: true,
+    fillDownCategory: false, // ffill category from previous row
+    splitCharacteristics: false // split characteristics by comma
+  });
+  
+  // Preview with validation
+  const [validatedPreview, setValidatedPreview] = useState([]);
+  const [previewErrors, setPreviewErrors] = useState({ count: 0, rows: [] });
 
   const handleFileSelect = async (e) => {
     const selectedFile = e.target.files?.[0];
@@ -55,36 +117,35 @@ export default function ImportPage() {
       const autoMapping = {};
       res.data.columns.forEach(col => {
         const colLower = col.toLowerCase();
-        FIELD_OPTIONS.forEach(opt => {
-          // Check various naming patterns
-          if (colLower.includes('наимен') || colLower.includes('название')) {
-            autoMapping['name'] = col;
-          } else if (colLower.includes('катег')) {
-            autoMapping['category'] = col;
-          } else if (colLower.includes('характер') || colLower.includes('описан')) {
-            autoMapping['characteristics'] = col;
-          } else if (colLower.includes('серийн') || colLower.includes('s/n')) {
-            autoMapping['serial_number'] = col;
-          } else if (colLower.includes('инвентар')) {
-            autoMapping['inventory_number'] = col;
-          } else if (colLower.includes('год')) {
-            autoMapping['year'] = col;
-          } else if (colLower.includes('состоян')) {
-            autoMapping['condition'] = col;
-          } else if (colLower.includes('этаж')) {
-            autoMapping['floor'] = col;
-          } else if (colLower.includes('кабинет') || colLower.includes('комнат')) {
-            autoMapping['room'] = col;
-          } else if (colLower.includes('отдел') || colLower.includes('подразд')) {
-            autoMapping['department'] = col;
-          } else if (colLower.includes('мол') || colLower.includes('ответств')) {
-            autoMapping['mol'] = col;
-          } else if (colLower.includes('колич') || colLower.includes('кол-во')) {
-            autoMapping['quantity'] = col;
-          } else if (colLower.includes('примеч')) {
-            autoMapping['notes'] = col;
-          }
-        });
+        if (colLower.includes('наимен') || colLower.includes('название') || colLower === 'name') {
+          autoMapping['name'] = col;
+        } else if (colLower.includes('катег') || colLower === 'category') {
+          autoMapping['category'] = col;
+        } else if (colLower.includes('характер') || colLower.includes('описан') || colLower === 'description') {
+          autoMapping['characteristics'] = col;
+        } else if (colLower.includes('серийн') || colLower.includes('s/n') || colLower === 'serial') {
+          autoMapping['serial_number'] = col;
+        } else if (colLower.includes('инвентар') || colLower === 'inventory') {
+          autoMapping['inventory_number'] = col;
+        } else if (colLower.includes('год') || colLower === 'year') {
+          autoMapping['year'] = col;
+        } else if (colLower.includes('состоян') || colLower === 'condition') {
+          autoMapping['condition'] = col;
+        } else if (colLower.includes('этаж') || colLower === 'floor') {
+          autoMapping['floor'] = col;
+        } else if (colLower.includes('кабинет') || colLower.includes('комнат') || colLower === 'room') {
+          autoMapping['room'] = col;
+        } else if (colLower.includes('отдел') || colLower.includes('подразд') || colLower === 'department') {
+          autoMapping['department'] = col;
+        } else if (colLower.includes('мол') || colLower.includes('ответств')) {
+          autoMapping['mol'] = col;
+        } else if (colLower.includes('колич') || colLower.includes('кол-во') || colLower === 'quantity') {
+          autoMapping['quantity'] = col;
+        } else if (colLower.includes('примеч') || colLower === 'notes') {
+          autoMapping['notes'] = col;
+        } else if (colLower.includes('внешн') || colLower.includes('external') || colLower === 'id') {
+          autoMapping['external_id'] = col;
+        }
       });
       setMapping(autoMapping);
       
@@ -102,6 +163,50 @@ export default function ImportPage() {
     setMapping(prev => ({ ...prev, [field]: column }));
   };
 
+  const handlePreviewValidation = () => {
+    if (!mapping.name) {
+      toast.error('Укажите колонку для наименования');
+      return;
+    }
+    
+    // Validate preview rows
+    const validated = [];
+    const errorRows = [];
+    let lastCategory = '';
+    
+    preview.preview.forEach((row, idx) => {
+      let processedRow = { ...row };
+      
+      // Fill down category if enabled
+      if (options.fillDownCategory && mapping.category) {
+        const catValue = row[mapping.category];
+        if (catValue && String(catValue).trim()) {
+          lastCategory = String(catValue).trim();
+        } else if (lastCategory) {
+          processedRow[mapping.category] = lastCategory;
+        }
+      }
+      
+      const errors = validateRow(processedRow, mapping);
+      const transformed = transformRow(processedRow, mapping);
+      
+      validated.push({
+        original: processedRow,
+        transformed,
+        errors,
+        rowNum: idx + 2 // +2 for header and 0-based index
+      });
+      
+      if (errors.length > 0) {
+        errorRows.push({ rowNum: idx + 2, errors });
+      }
+    });
+    
+    setValidatedPreview(validated);
+    setPreviewErrors({ count: errorRows.length, rows: errorRows });
+    setStep('preview');
+  };
+
   const handleImport = async () => {
     if (!mapping.name) {
       toast.error('Укажите колонку для наименования');
@@ -113,8 +218,14 @@ export default function ImportPage() {
       const formData = new FormData();
       formData.append('file', file);
 
+      // Include options in the request
+      const importParams = {
+        ...mapping,
+        _options: options
+      };
+
       const res = await api.post(
-        `/import/execute?mapping=${encodeURIComponent(JSON.stringify(mapping))}`,
+        `/import/execute?mapping=${encodeURIComponent(JSON.stringify(importParams))}`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
@@ -130,12 +241,29 @@ export default function ImportPage() {
     }
   };
 
+  const handleDownloadErrorReport = () => {
+    if (!result?.errors?.length) return;
+    
+    const csvContent = 'Строка,Ошибка\n' + 
+      result.errors.map(err => `"${err.replace(/"/g, '""')}"`).join('\n');
+    
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `import_errors_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleReset = () => {
     setStep('upload');
     setFile(null);
     setPreview(null);
     setMapping({});
     setResult(null);
+    setValidatedPreview([]);
+    setPreviewErrors({ count: 0, rows: [] });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -147,7 +275,18 @@ export default function ImportPage() {
         <h1 className="text-2xl font-bold font-['Barlow_Condensed'] uppercase tracking-tight">
           Импорт данных
         </h1>
-        <p className="text-muted-foreground">Загрузка объектов из Excel/CSV</p>
+        <p className="text-muted-foreground">Загрузка объектов из Excel/CSV с проверкой</p>
+      </div>
+
+      {/* Progress Steps */}
+      <div className="flex items-center gap-2 text-sm">
+        <Badge variant={step === 'upload' ? 'default' : 'secondary'}>1. Файл</Badge>
+        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        <Badge variant={step === 'mapping' ? 'default' : 'secondary'}>2. Маппинг</Badge>
+        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        <Badge variant={step === 'preview' ? 'default' : 'secondary'}>3. Проверка</Badge>
+        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        <Badge variant={step === 'result' ? 'default' : 'secondary'}>4. Результат</Badge>
       </div>
 
       {/* Step: Upload */}
@@ -192,22 +331,49 @@ export default function ImportPage() {
                 {preview.filename}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Найдено строк: <strong>{preview.total_rows}</strong>
+                Найдено строк: <strong>{preview.total_rows}</strong> | 
+                Колонок: <strong>{preview.columns.length}</strong>
               </p>
+              
+              {/* Import Options */}
+              <div className="p-4 bg-muted rounded-lg space-y-3">
+                <p className="font-medium flex items-center gap-2">
+                  <Info className="w-4 h-4" />
+                  Настройки импорта
+                </p>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="skipEmpty" className="text-sm">Пропускать пустые строки</Label>
+                  <Switch
+                    id="skipEmpty"
+                    checked={options.skipEmptyRows}
+                    onCheckedChange={(v) => setOptions(prev => ({ ...prev, skipEmptyRows: v }))}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="fillCategory" className="text-sm">
+                    Заполнять категорию из предыдущей строки (ffill)
+                  </Label>
+                  <Switch
+                    id="fillCategory"
+                    checked={options.fillDownCategory}
+                    onCheckedChange={(v) => setOptions(prev => ({ ...prev, fillDownCategory: v }))}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Сопоставление колонок</CardTitle>
+              <CardTitle>Сопоставление колонок (Mapping Wizard)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {FIELD_OPTIONS.map(opt => (
                   <div key={opt.value} className="flex items-center gap-4">
-                    <span className="w-40 text-sm font-medium flex-shrink-0">
+                    <span className="w-44 text-sm font-medium flex-shrink-0">
                       {opt.label}
                       {opt.required && <span className="text-red-500 ml-1">*</span>}
                     </span>
@@ -223,37 +389,49 @@ export default function ImportPage() {
                         <option key={col} value={col}>{col}</option>
                       ))}
                     </select>
+                    {mapping[opt.value] && (
+                      <Badge variant="outline" className="text-xs">
+                        ✓
+                      </Badge>
+                    )}
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Preview Table */}
+          {/* Raw Preview Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Предпросмотр (первые 5 строк)</CardTitle>
+              <CardTitle>Исходные данные (первые 5 строк)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      {preview.columns.slice(0, 6).map(col => (
-                        <TableHead key={col} className="whitespace-nowrap">{col}</TableHead>
+                      <TableHead className="w-12">#</TableHead>
+                      {preview.columns.slice(0, 8).map(col => (
+                        <TableHead key={col} className="whitespace-nowrap text-xs">
+                          {col}
+                          {Object.values(mapping).includes(col) && (
+                            <span className="ml-1 text-primary">●</span>
+                          )}
+                        </TableHead>
                       ))}
-                      {preview.columns.length > 6 && <TableHead>...</TableHead>}
+                      {preview.columns.length > 8 && <TableHead>...</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {preview.preview.map((row, i) => (
                       <TableRow key={i}>
-                        {preview.columns.slice(0, 6).map(col => (
-                          <TableCell key={col} className="text-sm max-w-[200px] truncate">
-                            {row[col] || '-'}
+                        <TableCell className="text-xs text-muted-foreground">{i + 2}</TableCell>
+                        {preview.columns.slice(0, 8).map(col => (
+                          <TableCell key={col} className="text-sm max-w-[150px] truncate">
+                            {row[col] || <span className="text-muted-foreground">—</span>}
                           </TableCell>
                         ))}
-                        {preview.columns.length > 6 && <TableCell>...</TableCell>}
+                        {preview.columns.length > 8 && <TableCell>...</TableCell>}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -266,9 +444,156 @@ export default function ImportPage() {
             <Button variant="outline" onClick={handleReset}>
               Отмена
             </Button>
-            <Button onClick={handleImport} disabled={loading} data-testid="import-execute-btn">
+            <Button onClick={handlePreviewValidation} disabled={loading} data-testid="preview-btn">
+              <Eye className="w-4 h-4 mr-2" />
+              Проверить данные
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step: Preview with Validation */}
+      {step === 'preview' && validatedPreview.length > 0 && (
+        <div className="space-y-6">
+          {/* Summary */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-lg font-medium">Проверка завершена</p>
+                  <p className="text-sm text-muted-foreground">
+                    Всего строк: {preview.total_rows} | 
+                    Проверено: {validatedPreview.length} | 
+                    С ошибками: {previewErrors.count}
+                  </p>
+                </div>
+                {previewErrors.count > 0 ? (
+                  <Badge variant="destructive" className="text-lg px-4 py-2">
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    {previewErrors.count} ошибок
+                  </Badge>
+                ) : (
+                  <Badge className="text-lg px-4 py-2 bg-emerald-600">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Всё в порядке
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Validated Preview Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Предпросмотр результата (как будет импортировано)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>Наименование</TableHead>
+                      <TableHead>Категория</TableHead>
+                      <TableHead>Этаж</TableHead>
+                      <TableHead>Отдел</TableHead>
+                      <TableHead>МОЛ</TableHead>
+                      <TableHead>Кол-во</TableHead>
+                      <TableHead className="w-32">Статус</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {validatedPreview.slice(0, 30).map((item, i) => (
+                      <TableRow 
+                        key={i} 
+                        className={item.errors.length > 0 ? 'bg-red-950/30' : ''}
+                      >
+                        <TableCell className="text-xs text-muted-foreground">
+                          {item.rowNum}
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[200px] truncate">
+                          {item.transformed.name || <span className="text-red-500">—</span>}
+                        </TableCell>
+                        <TableCell className="max-w-[150px] truncate">
+                          {item.transformed.category || '—'}
+                        </TableCell>
+                        <TableCell>{item.transformed.floor || '—'}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">
+                          {item.transformed.department || '—'}
+                        </TableCell>
+                        <TableCell className="max-w-[150px] truncate">
+                          {item.transformed.mol || '—'}
+                        </TableCell>
+                        <TableCell>{item.transformed.quantity || '1'}</TableCell>
+                        <TableCell>
+                          {item.errors.length > 0 ? (
+                            <span className="text-xs text-red-400" title={item.errors.join(', ')}>
+                              <AlertCircle className="w-4 h-4 inline mr-1" />
+                              {item.errors[0]}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-emerald-400">
+                              <CheckCircle className="w-4 h-4 inline mr-1" />
+                              OK
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {validatedPreview.length > 30 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground">
+                          ...и ещё {validatedPreview.length - 30} строк
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Error Details */}
+          {previewErrors.count > 0 && (
+            <Card className="border-red-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-500">
+                  <AlertCircle className="w-5 h-5" />
+                  Найденные ошибки ({previewErrors.count})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-1 text-sm max-h-40 overflow-y-auto">
+                  {previewErrors.rows.slice(0, 20).map((item, i) => (
+                    <li key={i} className="text-muted-foreground">
+                      <span className="text-red-400">Строка {item.rowNum}:</span> {item.errors.join('; ')}
+                    </li>
+                  ))}
+                  {previewErrors.rows.length > 20 && (
+                    <li className="text-muted-foreground font-medium">
+                      ...и ещё {previewErrors.rows.length - 20} строк с ошибками
+                    </li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setStep('mapping')}>
+              Назад к маппингу
+            </Button>
+            <Button 
+              onClick={handleImport} 
+              disabled={loading} 
+              data-testid="import-execute-btn"
+              variant={previewErrors.count > 0 ? 'destructive' : 'default'}
+            >
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-              Импортировать {preview.total_rows} объектов
+              {previewErrors.count > 0 
+                ? `Импортировать (с ${previewErrors.count} ошибками)` 
+                : `Импортировать ${preview.total_rows} объектов`
+              }
             </Button>
           </div>
         </div>
@@ -304,11 +629,20 @@ export default function ImportPage() {
 
           {result.errors?.length > 0 && (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-red-500">
                   <AlertCircle className="w-5 h-5" />
                   Ошибки импорта
                 </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleDownloadErrorReport}
+                  data-testid="download-errors-btn"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Скачать CSV
+                </Button>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1 text-sm max-h-60 overflow-y-auto">
@@ -323,9 +657,14 @@ export default function ImportPage() {
             </Card>
           )}
 
-          <Button onClick={handleReset} data-testid="import-new-btn">
-            Импортировать ещё
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={handleReset} data-testid="import-new-btn">
+              Импортировать ещё
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = '/admin/objects'}>
+              Перейти к объектам
+            </Button>
+          </div>
         </div>
       )}
     </div>
