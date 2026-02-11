@@ -673,18 +673,6 @@ async def update_object(object_id: str, data: ObjectUpdate, user: dict = Depends
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
-    # Update category name if category changed
-    if "category_id" in update_data and update_data["category_id"]:
-        cat = await db.categories.find_one({"id": update_data["category_id"]}, {"_id": 0})
-        if cat:
-            update_data["category_name"] = cat.get("name")
-    
-    # Update MOL name if MOL changed
-    if "mol_id" in update_data and update_data["mol_id"]:
-        mol = await db.references.find_one({"id": update_data["mol_id"], "type": "mol"}, {"_id": 0})
-        if mol:
-            update_data["mol_name"] = mol.get("name")
-    
     await db.objects.update_one({"id": object_id}, {"$set": update_data})
     await log_audit(object_id, "update", {"old": obj, "new": update_data}, user["id"])
     
