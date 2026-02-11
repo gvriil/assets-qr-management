@@ -180,6 +180,7 @@ export default function RatesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Название</TableHead>
                   <TableHead>Сложность</TableHead>
                   <TableHead className="text-right">Ставка</TableHead>
                   <TableHead className="text-right">Норма времени</TableHead>
@@ -190,6 +191,9 @@ export default function RatesPage() {
                 {rates.map(rate => (
                   <TableRow key={rate.id} data-testid={`rate-row-${rate.id}`}>
                     <TableCell className="font-medium">
+                      {rate.name || '-'}
+                    </TableCell>
+                    <TableCell>
                       {COMPLEXITY_LABELS[rate.complexity]}
                     </TableCell>
                     <TableCell className="text-right font-mono text-lg">
