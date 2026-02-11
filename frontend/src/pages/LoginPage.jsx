@@ -6,17 +6,28 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '../components/ui/input-otp';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, QrCode, Shield } from 'lucide-react';
+import { Loader2, QrCode, Shield, UserPlus, LogIn } from 'lucide-react';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, verify2FA } = useAuth();
+  const [activeTab, setActiveTab] = useState('login');
   const [step, setStep] = useState('credentials'); // credentials | 2fa
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Registration fields
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -30,7 +41,7 @@ export default function LoginPage() {
       const res = await login(email, password);
       if (res.requires_2fa) {
         setStep('2fa');
-        toast.success('Код подтверждения отправлен (проверьте логи сервера для MVP)');
+        toast.success('Код подтверждения отправлен');
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Ошибка входа');
@@ -49,9 +60,40 @@ export default function LoginPage() {
     try {
       const user = await verify2FA(email, code);
       toast.success(`Добро пожаловать, ${user.name}!`);
-      navigate(user.role === 'admin' ? '/admin' : '/scanner');
+      navigate(user.role === 'admin' || user.role === 'auditor' ? '/admin' : '/scanner');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Неверный код');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!regName || !regEmail || !regPassword || !inviteCode) {
+      toast.error('Заполните все поля');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(`${API}/auth/register`, {
+        email: regEmail,
+        password: regPassword,
+        name: regName,
+        invite_code: inviteCode.toUpperCase()
+      });
+      
+      toast.success('Регистрация успешна! Теперь войдите.');
+      setEmail(regEmail);
+      setPassword(regPassword);
+      setActiveTab('login');
+      setRegName('');
+      setRegEmail('');
+      setRegPassword('');
+      setInviteCode('');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Ошибка регистрации');
     } finally {
       setLoading(false);
     }
@@ -76,47 +118,125 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-bold tracking-tight uppercase text-white font-['Barlow_Condensed']">
             Инвентаризация
           </CardTitle>
-          <CardDescription className="text-zinc-400">
-            {step === 'credentials' ? 'Войдите для продолжения' : 'Введите код подтверждения'}
-          </CardDescription>
         </CardHeader>
 
         <CardContent>
           {step === 'credentials' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-zinc-300">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                  data-testid="login-email-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-zinc-300">Пароль</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                  data-testid="login-password-input"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold"
-                disabled={loading}
-                data-testid="login-submit-btn"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Войти'}
-              </Button>
-            </form>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="login" className="gap-2">
+                  <LogIn className="w-4 h-4" />
+                  Вход
+                </TabsTrigger>
+                <TabsTrigger value="register" className="gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  Регистрация
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Login Tab */}
+              <TabsContent value="login">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-zinc-300">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                      data-testid="login-email-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-zinc-300">Пароль</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                      data-testid="login-password-input"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold"
+                    disabled={loading}
+                    data-testid="login-submit-btn"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Войти'}
+                  </Button>
+                </form>
+
+                {/* Default admin hint */}
+                <div className="mt-4 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                  <p className="text-xs text-zinc-400 text-center">
+                    <strong className="text-zinc-300">Тестовый админ:</strong><br />
+                    admin@inventory.local / admin123
+                  </p>
+                </div>
+              </TabsContent>
+
+              {/* Register Tab */}
+              <TabsContent value="register">
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-zinc-300">Инвайт-код *</Label>
+                    <Input
+                      placeholder="INV-XXXX-XXXX"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 font-mono tracking-wider"
+                      data-testid="invite-code-input"
+                    />
+                    <p className="text-xs text-zinc-500">Получите код у администратора</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-zinc-300">Ваше имя</Label>
+                    <Input
+                      placeholder="Иван Иванов"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                      data-testid="register-name-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-zinc-300">Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                      data-testid="register-email-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-zinc-300">Пароль</Label>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      className="h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                      data-testid="register-password-input"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold"
+                    disabled={loading}
+                    data-testid="register-submit-btn"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Зарегистрироваться'}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
           ) : (
             <div className="space-y-6">
               <div className="flex justify-center items-center gap-2 text-zinc-400">
