@@ -95,7 +95,8 @@ export default function LoginPage() {
       setRegPassword('');
       setInviteCode('');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Ошибка регистрации');
+      const errorMsg = err.response?.data?.detail;
+      toast.error(typeof errorMsg === 'string' ? errorMsg : 'Ошибка регистрации');
     } finally {
       setLoading(false);
     }
