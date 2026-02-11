@@ -108,6 +108,15 @@ export default function RatesPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
+                <Label>Название тарифа</Label>
+                <Input
+                  placeholder="Например: Простой"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  data-testid="rate-name-input"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Сложность</Label>
                 <select
                   className="w-full h-10 px-3 rounded-md border border-input bg-background"
