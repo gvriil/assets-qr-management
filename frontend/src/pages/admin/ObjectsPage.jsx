@@ -124,29 +124,29 @@ export default function ObjectsPage() {
           </Button>
         </form>
 
-        <Select value={filters.status} onValueChange={(v) => handleFilterChange('status', v)}>
-          <SelectTrigger className="w-[160px]" data-testid="status-filter">
-            <SelectValue placeholder="Все статусы" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Все статусы</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select 
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm w-[160px]"
+          value={filters.status} 
+          onChange={(e) => handleFilterChange('status', e.target.value)}
+          data-testid="status-filter"
+        >
+          <option value="">Все статусы</option>
+          {Object.entries(STATUS_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
 
-        <Select value={filters.category_id} onValueChange={(v) => handleFilterChange('category_id', v)}>
-          <SelectTrigger className="w-[160px]" data-testid="category-filter">
-            <SelectValue placeholder="Все категории" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Все категории</SelectItem>
-            {categories.map(cat => (
-              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select 
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm w-[160px]"
+          value={filters.category_id} 
+          onChange={(e) => handleFilterChange('category_id', e.target.value)}
+          data-testid="category-filter"
+        >
+          <option value="">Все категории</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Table */}
