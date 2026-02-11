@@ -963,7 +963,13 @@ async def execute_import(
     import pandas as pd
     
     content = await file.read()
-    column_mapping = json.loads(mapping)
+    mapping_data = json.loads(mapping)
+    
+    # Extract options if present
+    options = mapping_data.pop('_options', {})
+    column_mapping = mapping_data
+    fill_down_category = options.get('fillDownCategory', False)
+    skip_empty_rows = options.get('skipEmptyRows', True)
     
     if file.filename.endswith('.csv'):
         df = pd.read_csv(BytesIO(content))
@@ -975,6 +981,8 @@ async def execute_import(
     errors = []
     now = datetime.now(timezone.utc).isoformat()
     
+    last_category = ''
+    
     for idx, row in df.iterrows():
         try:
             obj_data = {}
@@ -982,10 +990,21 @@ async def execute_import(
                 if source and source in row:
                     val = row[source]
                     if pd.notna(val):
-                        obj_data[target] = str(val)
+                        obj_data[target] = str(val).strip()
+            
+            # Fill down category from previous row if enabled
+            if fill_down_category:
+                if obj_data.get('category'):
+                    last_category = obj_data['category']
+                elif last_category:
+                    obj_data['category'] = last_category
+            
+            # Skip empty rows if enabled
+            if skip_empty_rows and not obj_data.get("name"):
+                continue
             
             if not obj_data.get("name"):
-                errors.append(f"Строка {idx + 2}: отсутствует название")
+                errors.append(f"Строка {idx + 2}: отсутствует наименование")
                 continue
             
             # Check if exists by external_id
@@ -1023,7 +1042,8 @@ async def execute_import(
     return {
         "created": created,
         "updated": updated,
-        "errors": errors[:50]  # Limit errors
+        "errors": errors[:100],  # Limit errors to 100
+        "total_errors": len(errors)
     }
 
 # ==================== EXPORT ROUTES ====================
