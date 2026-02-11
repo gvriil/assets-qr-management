@@ -502,13 +502,23 @@ export default function ObjectPage() {
           </CardContent>
         </Card>
 
-        {/* Location */}
+        {/* Location - ОИВ, ЭТАЖ, УПРАВЛЕНИЕ, ОТДЕЛ, МЕСТО, ФИО */}
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Местоположение</CardTitle>
+            <CardTitle className="text-lg">Местоположение и ответственные</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              ОИВ → ЭТАЖ → УПРАВЛЕНИЕ → ОТДЕЛ → МЕСТО → ФИО
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
+              <ComboInput
+                label="ОИВ"
+                value={object.oiv}
+                options={oivs}
+                onChange={(v) => handleChange('oiv', v)}
+                placeholder="Выберите ОИВ"
+              />
               <ComboInput
                 label="Этаж"
                 value={object.floor}
@@ -516,32 +526,43 @@ export default function ObjectPage() {
                 onChange={(v) => handleChange('floor', v)}
                 placeholder="№ этажа"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <ComboInput
+                label="Управление"
+                value={object.management}
+                options={managements}
+                onChange={(v) => handleChange('management', v)}
+                placeholder="Выберите управление"
+              />
+              <ComboInput
+                label="Отдел"
+                value={object.department}
+                options={departments}
+                onChange={(v) => handleChange('department', v)}
+                placeholder="Выберите отдел"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-zinc-300">Кабинет</Label>
+                <Label className="text-zinc-300">Место / Помещение</Label>
                 <Input
                   value={object.room || ''}
                   onChange={(e) => handleChange('room', e.target.value)}
-                  placeholder="№ кабинета"
+                  placeholder="№ кабинета / помещения"
                   className="bg-zinc-900 border-zinc-700"
                 />
               </div>
+              <ComboInput
+                label="ФИО (МОЛ)"
+                value={object.mol}
+                options={mols}
+                onChange={(v) => handleChange('mol', v)}
+                placeholder="Ответственное лицо"
+              />
             </div>
-
-            <ComboInput
-              label="Отдел"
-              value={object.department}
-              options={departments}
-              onChange={(v) => handleChange('department', v)}
-              placeholder="Выберите отдел"
-            />
-
-            <ComboInput
-              label="МОЛ"
-              value={object.mol}
-              options={mols}
-              onChange={(v) => handleChange('mol', v)}
-              placeholder="Материально-ответственное лицо"
-            />
           </CardContent>
         </Card>
 
