@@ -260,14 +260,14 @@ export default function ObjectPage() {
           onFocus={() => setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
           placeholder={placeholder}
-          className="bg-zinc-900 border-zinc-700"
+          className="bg-zinc-900 border-zinc-700 text-white"
         />
         {showDropdown && filteredOptions.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
-            {filteredOptions.map((opt, i) => (
+          <div className="absolute z-50 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
+            {filteredOptions.slice(0, 10).map((opt, i) => (
               <div
                 key={i}
-                className="px-3 py-2 hover:bg-zinc-700 cursor-pointer text-sm"
+                className="px-3 py-2 hover:bg-zinc-700 cursor-pointer text-sm text-white"
                 onMouseDown={() => onChange(opt)}
               >
                 {opt}
