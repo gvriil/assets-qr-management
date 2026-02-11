@@ -2,19 +2,26 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { toast } from 'sonner';
 import { Loader2, Upload, FileSpreadsheet, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 
 const FIELD_OPTIONS = [
-  { value: 'name', label: 'Название' },
-  { value: 'external_id', label: 'Внешний ID' },
-  { value: 'description', label: 'Описание' },
+  { value: 'name', label: 'Наименование', required: true },
+  { value: 'category', label: 'Категория' },
   { value: 'characteristics', label: 'Характеристики' },
+  { value: 'serial_number', label: 'Серийный номер' },
+  { value: 'inventory_number', label: 'Инвентарный номер' },
+  { value: 'year', label: 'Год выпуска' },
+  { value: 'condition', label: 'Состояние' },
   { value: 'floor', label: 'Этаж' },
+  { value: 'room', label: 'Кабинет' },
   { value: 'department', label: 'Отдел' },
+  { value: 'mol', label: 'МОЛ' },
+  { value: 'quantity', label: 'Количество' },
   { value: 'complexity', label: 'Сложность' },
+  { value: 'external_id', label: 'Внешний ID' },
+  { value: 'notes', label: 'Примечание' },
 ];
 
 export default function ImportPage() {
@@ -44,29 +51,60 @@ export default function ImportPage() {
       });
       setPreview(res.data);
       
-      // Auto-map columns
+      // Auto-map columns by name similarity
       const autoMapping = {};
       res.data.columns.forEach(col => {
         const colLower = col.toLowerCase();
         FIELD_OPTIONS.forEach(opt => {
-          if (colLower.includes(opt.value) || colLower.includes(opt.label.toLowerCase())) {
-            autoMapping[opt.value] = col;
+          // Check various naming patterns
+          if (colLower.includes('наимен') || colLower.includes('название')) {
+            autoMapping['name'] = col;
+          } else if (colLower.includes('катег')) {
+            autoMapping['category'] = col;
+          } else if (colLower.includes('характер') || colLower.includes('описан')) {
+            autoMapping['characteristics'] = col;
+          } else if (colLower.includes('серийн') || colLower.includes('s/n')) {
+            autoMapping['serial_number'] = col;
+          } else if (colLower.includes('инвентар')) {
+            autoMapping['inventory_number'] = col;
+          } else if (colLower.includes('год')) {
+            autoMapping['year'] = col;
+          } else if (colLower.includes('состоян')) {
+            autoMapping['condition'] = col;
+          } else if (colLower.includes('этаж')) {
+            autoMapping['floor'] = col;
+          } else if (colLower.includes('кабинет') || colLower.includes('комнат')) {
+            autoMapping['room'] = col;
+          } else if (colLower.includes('отдел') || colLower.includes('подразд')) {
+            autoMapping['department'] = col;
+          } else if (colLower.includes('мол') || colLower.includes('ответств')) {
+            autoMapping['mol'] = col;
+          } else if (colLower.includes('колич') || colLower.includes('кол-во')) {
+            autoMapping['quantity'] = col;
+          } else if (colLower.includes('примеч')) {
+            autoMapping['notes'] = col;
           }
         });
       });
       setMapping(autoMapping);
       
       setStep('mapping');
+      toast.success(`Файл загружен: ${res.data.total_rows} строк`);
     } catch (err) {
-      toast.error('Ошибка чтения файла');
+      const msg = err.response?.data?.detail;
+      toast.error(typeof msg === 'string' ? msg : 'Ошибка чтения файла');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleMappingChange = (field, column) => {
+    setMapping(prev => ({ ...prev, [field]: column }));
+  };
+
   const handleImport = async () => {
     if (!mapping.name) {
-      toast.error('Укажите колонку для названия');
+      toast.error('Укажите колонку для наименования');
       return;
     }
 
@@ -85,7 +123,8 @@ export default function ImportPage() {
       setStep('result');
       toast.success(`Импорт завершён: создано ${res.data.created}, обновлено ${res.data.updated}`);
     } catch (err) {
-      toast.error('Ошибка импорта');
+      const msg = err.response?.data?.detail;
+      toast.error(typeof msg === 'string' ? msg : 'Ошибка импорта');
     } finally {
       setLoading(false);
     }
@@ -97,6 +136,9 @@ export default function ImportPage() {
     setPreview(null);
     setMapping({});
     setResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -129,7 +171,7 @@ export default function ImportPage() {
               ) : (
                 <>
                   <FileSpreadsheet className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium mb-2">Перетащите файл или нажмите</p>
+                  <p className="text-lg font-medium mb-2">Нажмите для выбора файла</p>
                   <p className="text-sm text-muted-foreground">
                     Поддерживаемые форматы: .xlsx, .xls, .csv
                   </p>
@@ -152,7 +194,7 @@ export default function ImportPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Найдено строк: {preview.total_rows}
+                Найдено строк: <strong>{preview.total_rows}</strong>
               </p>
             </CardContent>
           </Card>
@@ -162,28 +204,25 @@ export default function ImportPage() {
               <CardTitle>Сопоставление колонок</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {FIELD_OPTIONS.map(opt => (
                   <div key={opt.value} className="flex items-center gap-4">
-                    <span className="w-32 text-sm font-medium">
+                    <span className="w-40 text-sm font-medium flex-shrink-0">
                       {opt.label}
-                      {opt.value === 'name' && <span className="text-red-500">*</span>}
+                      {opt.required && <span className="text-red-500 ml-1">*</span>}
                     </span>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                    <Select
+                    <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <select
+                      className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm"
                       value={mapping[opt.value] || ''}
-                      onValueChange={(v) => setMapping(prev => ({ ...prev, [opt.value]: v }))}
+                      onChange={(e) => handleMappingChange(opt.value, e.target.value)}
+                      data-testid={`mapping-${opt.value}`}
                     >
-                      <SelectTrigger className="flex-1" data-testid={`mapping-${opt.value}`}>
-                        <SelectValue placeholder="Выберите колонку" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">— Не использовать —</SelectItem>
-                        {preview.columns.map(col => (
-                          <SelectItem key={col} value={col}>{col}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">— Не использовать —</option>
+                      {preview.columns.map(col => (
+                        <option key={col} value={col}>{col}</option>
+                      ))}
+                    </select>
                   </div>
                 ))}
               </div>
@@ -200,19 +239,21 @@ export default function ImportPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      {preview.columns.map(col => (
-                        <TableHead key={col}>{col}</TableHead>
+                      {preview.columns.slice(0, 6).map(col => (
+                        <TableHead key={col} className="whitespace-nowrap">{col}</TableHead>
                       ))}
+                      {preview.columns.length > 6 && <TableHead>...</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {preview.preview.map((row, i) => (
                       <TableRow key={i}>
-                        {preview.columns.map(col => (
-                          <TableCell key={col} className="text-sm">
+                        {preview.columns.slice(0, 6).map(col => (
+                          <TableCell key={col} className="text-sm max-w-[200px] truncate">
                             {row[col] || '-'}
                           </TableCell>
                         ))}
+                        {preview.columns.length > 6 && <TableCell>...</TableCell>}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -227,7 +268,7 @@ export default function ImportPage() {
             </Button>
             <Button onClick={handleImport} disabled={loading} data-testid="import-execute-btn">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-              Импортировать
+              Импортировать {preview.total_rows} объектов
             </Button>
           </div>
         </div>
@@ -270,12 +311,12 @@ export default function ImportPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-1 text-sm">
-                  {result.errors.slice(0, 20).map((err, i) => (
+                <ul className="space-y-1 text-sm max-h-60 overflow-y-auto">
+                  {result.errors.slice(0, 50).map((err, i) => (
                     <li key={i} className="text-muted-foreground">{err}</li>
                   ))}
-                  {result.errors.length > 20 && (
-                    <li className="text-muted-foreground">...и ещё {result.errors.length - 20}</li>
+                  {result.errors.length > 50 && (
+                    <li className="text-muted-foreground font-medium">...и ещё {result.errors.length - 50}</li>
                   )}
                 </ul>
               </CardContent>
