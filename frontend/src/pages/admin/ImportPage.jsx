@@ -481,6 +481,20 @@ export default function ImportPage() {
                     onCheckedChange={(v) => setOptions(prev => ({ ...prev, fillDownCategory: v }))}
                   />
                 </div>
+                <div className="flex items-center justify-between border-t pt-3 mt-3">
+                  <div>
+                    <Label htmlFor="parseCommas" className="text-sm">Разбивать описание по запятым</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Извлечёт данные (этаж, кабинет, год) из описания в отдельные поля
+                    </p>
+                  </div>
+                  <Switch
+                    id="parseCommas"
+                    checked={parseCommas}
+                    onCheckedChange={setParseCommas}
+                    data-testid="parse-commas-switch"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
