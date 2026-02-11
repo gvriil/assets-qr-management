@@ -14,14 +14,14 @@ export default function ExportPage() {
   
   // Simple export
   const [format, setFormat] = useState('xlsx');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('all');
   const [loading, setLoading] = useState(false);
   
   // Catalog export
   const [catalogFormat, setCatalogFormat] = useState('pdf');
   const [pageSize, setPageSize] = useState('A4');
   const [includePhotos, setIncludePhotos] = useState(true);
-  const [catalogStatus, setCatalogStatus] = useState('');
+  const [catalogStatus, setCatalogStatus] = useState('all');
   const [catalogLoading, setCatalogLoading] = useState(false);
 
   const handleExport = async () => {
@@ -29,7 +29,7 @@ export default function ExportPage() {
     try {
       const params = new URLSearchParams();
       params.append('format', format);
-      if (status) params.append('status', status);
+      if (status && status !== 'all') params.append('status', status);
 
       const res = await api.get(`/export/objects?${params.toString()}`, {
         responseType: 'blob'
@@ -58,7 +58,7 @@ export default function ExportPage() {
       params.append('format', catalogFormat);
       params.append('page_size', pageSize);
       params.append('include_photos', includePhotos.toString());
-      if (catalogStatus) params.append('status', catalogStatus);
+      if (catalogStatus && catalogStatus !== 'all') params.append('status', catalogStatus);
 
       const res = await api.get(`/export/catalog?${params.toString()}`, {
         responseType: 'blob',
