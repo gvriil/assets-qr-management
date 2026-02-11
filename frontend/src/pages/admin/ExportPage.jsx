@@ -1,89 +1,103 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Switch } from '../../components/ui/switch';
+import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, Download, FileSpreadsheet, FileText, Image, Printer, BookOpen, Eye } from 'lucide-react';
+import { 
+  Loader2, Download, FileSpreadsheet, FileText, Image, Printer, Eye, 
+  X, Camera, ClipboardList, FileCheck, ListOrdered 
+} from 'lucide-react';
+
+// Типы документов согласно ТЗ
+const DOCUMENT_TYPES = {
+  photo_archive: {
+    id: 'photo_archive',
+    name: 'Приложение №2 - Общий фотоархив',
+    description: 'Фотоархив имущества с инвентарными номерами',
+    icon: Camera,
+    columns: ['№ п/п', 'Инв. номер АО «ЦУГИ»', 'ФОТО']
+  },
+  catalog: {
+    id: 'catalog',
+    name: 'Приложение №3 - Каталог имущества',
+    description: 'Полный каталог с характеристиками и фото',
+    icon: ClipboardList,
+    columns: ['№ п/п', 'Наименование', 'Характеристика/Описание', 'Серийный номер', 
+              'Инв. номер', 'Фото', 'Количество', 'Примечание', 'План кабинета']
+  },
+  inventory_list: {
+    id: 'inventory_list',
+    name: 'Приложение №4 - Инвентаризационная ведомость',
+    description: 'Ведомость с техническим состоянием',
+    icon: FileCheck,
+    columns: ['№ п/п', 'Инв. номер', 'Порядковый номер', 'Предыдущий инв. номер',
+              'Наименование', 'Артикул', 'Год выпуска', 'Паспорт/Сертификат', 
+              'Тех. состояние', 'Местонахождение']
+  },
+  specification_report: {
+    id: 'specification_report',
+    name: 'Приложение №5 - Отчет по спецификации',
+    description: 'Краткий отчет по наличию',
+    icon: ListOrdered,
+    columns: ['№ п/п по спецификации', 'Наименование', 'Инв. номер', 'Наличие']
+  }
+};
 
 export default function ExportPage() {
   const { api } = useAuth();
+  const iframeRef = useRef(null);
   
-  // Simple export
-  const [format, setFormat] = useState('xlsx');
+  // Selected document type
+  const [docType, setDocType] = useState('catalog');
   const [status, setStatus] = useState('all');
+  const [room, setRoom] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Catalog export
-  const [catalogFormat, setCatalogFormat] = useState('pdf');
-  const [pageSize, setPageSize] = useState('A4');
-  const [includePhotos, setIncludePhotos] = useState(true);
-  const [catalogStatus, setCatalogStatus] = useState('all');
-  const [catalogLoading, setCatalogLoading] = useState(false);
+  // Commission members for signatures
+  const [commission, setCommission] = useState([
+    { position: '', name: '' },
+    { position: '', name: '' },
+    { position: '', name: '' }
+  ]);
+  const [executor, setExecutor] = useState({ position: '', name: '' });
+  
+  // PDF Preview
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleExport = async (action = 'download') => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('format', format);
+      params.append('doc_type', docType);
+      params.append('format', 'pdf');
       if (status && status !== 'all') params.append('status', status);
-
-      const res = await api.get(`/export/objects?${params.toString()}`, {
-        responseType: 'blob'
-      });
-
-      const blob = new Blob([res.data], { 
-        type: format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv' 
-      });
-      const url = window.URL.createObjectURL(blob);
+      if (room) params.append('room', room);
       
-      if (action === 'preview') {
-        window.open(url, '_blank');
-        toast.success('Файл открыт в новой вкладке');
-      } else {
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `inventory_export.${format}`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-        toast.success('Файл скачан');
-      }
-    } catch (err) {
-      console.error('Export error:', err);
-      toast.error('Ошибка экспорта');
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Add commission data
+      const commissionData = {
+        members: commission.filter(m => m.name || m.position),
+        executor: executor
+      };
+      params.append('commission', JSON.stringify(commissionData));
 
-  const handleCatalogExport = async (action = 'download') => {
-    setCatalogLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.append('format', catalogFormat);
-      params.append('page_size', pageSize);
-      params.append('include_photos', includePhotos.toString());
-      if (catalogStatus && catalogStatus !== 'all') params.append('status', catalogStatus);
-
-      const res = await api.get(`/export/catalog?${params.toString()}`, {
+      const res = await api.get(`/export/document?${params.toString()}`, {
         responseType: 'blob',
-        timeout: 120000 // 2 min timeout for large catalogs with photos
+        timeout: 180000 // 3 min timeout
       });
 
-      const ext = catalogFormat === 'pdf' ? 'pdf' : 'xlsx';
-      const mimeType = catalogFormat === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      const blob = new Blob([res.data], { type: mimeType });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       
       if (action === 'preview') {
-        window.open(url, '_blank');
-        toast.success('Файл открыт в новой вкладке');
-      } else if (action === 'print' && catalogFormat === 'pdf') {
+        setPreviewUrl(url);
+        setShowPreview(true);
+      } else if (action === 'print') {
         const printWindow = window.open(url, '_blank');
         if (printWindow) {
           printWindow.onload = () => {
@@ -94,7 +108,8 @@ export default function ExportPage() {
       } else {
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `inventory_catalog_${pageSize}${includePhotos ? '_with_photos' : ''}.${ext}`);
+        const docName = DOCUMENT_TYPES[docType].name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
+        link.setAttribute('download', `${docName}.pdf`);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -102,161 +117,130 @@ export default function ExportPage() {
         toast.success('Файл скачан');
       }
     } catch (err) {
-      console.error('Catalog export error:', err);
-      toast.error('Ошибка формирования каталога');
+      console.error('Export error:', err);
+      toast.error('Ошибка формирования документа');
     } finally {
-      setCatalogLoading(false);
+      setLoading(false);
     }
   };
+
+  const handleExportExcel = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('doc_type', docType);
+      params.append('format', 'xlsx');
+      if (status && status !== 'all') params.append('status', status);
+      if (room) params.append('room', room);
+
+      const res = await api.get(`/export/document?${params.toString()}`, {
+        responseType: 'blob',
+        timeout: 180000
+      });
+
+      const blob = new Blob([res.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const docName = DOCUMENT_TYPES[docType].name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
+      link.setAttribute('download', `${docName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Excel файл скачан');
+    } catch (err) {
+      console.error('Excel export error:', err);
+      toast.error('Ошибка формирования Excel');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateCommissionMember = (index, field, value) => {
+    setCommission(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const addCommissionMember = () => {
+    setCommission(prev => [...prev, { position: '', name: '' }]);
+  };
+
+  const DocIcon = DOCUMENT_TYPES[docType]?.icon || FileText;
 
   return (
     <div className="space-y-6" data-testid="export-page">
       <div>
         <h1 className="text-2xl font-bold font-['Barlow_Condensed'] uppercase tracking-tight">
-          Экспорт и печать
+          Экспорт документов
         </h1>
-        <p className="text-muted-foreground">Выгрузка данных, каталогов и отчётов</p>
+        <p className="text-muted-foreground">Формирование официальных документов по ТЗ</p>
       </div>
 
+      {/* Document Type Selection */}
+      <Tabs value={docType} onValueChange={setDocType} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
+          {Object.values(DOCUMENT_TYPES).map(doc => {
+            const Icon = doc.icon;
+            return (
+              <TabsTrigger 
+                key={doc.id} 
+                value={doc.id}
+                className="flex flex-col gap-1 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                data-testid={`doc-type-${doc.id}`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-xs text-center leading-tight">{doc.name.split(' - ')[0]}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        {Object.values(DOCUMENT_TYPES).map(doc => (
+          <TabsContent key={doc.id} value={doc.id} className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <doc.icon className="w-5 h-5 text-primary" />
+                  {doc.name}
+                </CardTitle>
+                <CardDescription>{doc.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Columns preview */}
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-xs font-medium mb-2 text-muted-foreground">Столбцы документа:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {doc.columns.map((col, i) => (
+                      <span key={i} className="text-xs bg-background px-2 py-1 rounded border">
+                        {i + 1}. {col}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
+
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Simple Data Export */}
+        {/* Filters */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-primary" />
-              Экспорт данных
-            </CardTitle>
-            <CardDescription>
-              Выгрузка перечня объектов в таблицу
-            </CardDescription>
+            <CardTitle>Фильтры</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Формат файла</Label>
-              <Select value={format} onValueChange={setFormat}>
-                <SelectTrigger data-testid="export-format-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
-                  <SelectItem value="csv">CSV (.csv)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Фильтр по статусу</Label>
+              <Label>Статус объектов</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger data-testid="export-status-select">
                   <SelectValue placeholder="Все статусы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="new">Новые</SelectItem>
-                  <SelectItem value="pending">На проверке</SelectItem>
-                  <SelectItem value="verified">Подтверждённые</SelectItem>
-                  <SelectItem value="rejected">Отклонённые</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button 
-              onClick={() => handleExport('preview')} 
-              disabled={loading}
-              variant="outline"
-              className="w-full"
-              data-testid="export-preview-btn"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Просмотр
-            </Button>
-            <Button 
-              onClick={() => handleExport('download')} 
-              disabled={loading}
-              className="w-full"
-              data-testid="export-btn"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Download className="w-4 h-4 mr-2" />
-              )}
-              Скачать таблицу
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Catalog Export with Photos */}
-        <Card className="border-primary/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              Каталог для печати
-            </CardTitle>
-            <CardDescription>
-              Формирование каталога с фото для печати на A4/A3
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Format Selection */}
-            <div className="space-y-3">
-              <Label>Формат каталога</Label>
-              <RadioGroup value={catalogFormat} onValueChange={setCatalogFormat} className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pdf" id="pdf" />
-                  <Label htmlFor="pdf" className="flex items-center gap-2 cursor-pointer">
-                    <FileText className="w-4 h-4" />
-                    PDF
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="xlsx" id="xlsx-catalog" />
-                  <Label htmlFor="xlsx-catalog" className="flex items-center gap-2 cursor-pointer">
-                    <FileSpreadsheet className="w-4 h-4" />
-                    Excel с фото
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Page Size */}
-            <div className="space-y-3">
-              <Label>Размер страницы</Label>
-              <RadioGroup value={pageSize} onValueChange={setPageSize} className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="A4" id="a4" />
-                  <Label htmlFor="a4" className="cursor-pointer">A4 (210×297 мм)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="A3" id="a3" />
-                  <Label htmlFor="a3" className="cursor-pointer">A3 (297×420 мм)</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Include Photos Toggle */}
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <div className="flex items-center gap-3">
-                <Image className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <Label htmlFor="include-photos" className="cursor-pointer">Включить фотографии</Label>
-                  <p className="text-xs text-muted-foreground">Каждый объект с фото</p>
-                </div>
-              </div>
-              <Switch
-                id="include-photos"
-                checked={includePhotos}
-                onCheckedChange={setIncludePhotos}
-                data-testid="include-photos-switch"
-              />
-            </div>
-
-            {/* Status Filter */}
-            <div className="space-y-2">
-              <Label>Фильтр по статусу</Label>
-              <Select value={catalogStatus} onValueChange={setCatalogStatus}>
-                <SelectTrigger data-testid="catalog-status-select">
-                  <SelectValue placeholder="Все объекты" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все объекты</SelectItem>
@@ -267,87 +251,180 @@ export default function ExportPage() {
               </Select>
             </div>
 
-            {/* 3 Action Buttons */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-2">
+              <Label>Кабинет / Помещение</Label>
+              <Input
+                placeholder="Например: 205"
+                value={room}
+                onChange={(e) => setRoom(e.target.value)}
+                data-testid="export-room-input"
+              />
+              <p className="text-xs text-muted-foreground">
+                Оставьте пустым для всех помещений
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Commission Members */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Рабочая комиссия</CardTitle>
+            <CardDescription>
+              Данные для подписей в документе
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Члены комиссии:</Label>
+              {commission.map((member, idx) => (
+                <div key={idx} className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="Должность"
+                    value={member.position}
+                    onChange={(e) => updateCommissionMember(idx, 'position', e.target.value)}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="ФИО"
+                    value={member.name}
+                    onChange={(e) => updateCommissionMember(idx, 'name', e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+              ))}
               <Button 
-                onClick={() => handleCatalogExport('preview')} 
-                disabled={catalogLoading}
-                variant="outline"
-                data-testid="catalog-preview-btn"
+                variant="ghost" 
+                size="sm" 
+                onClick={addCommissionMember}
+                className="w-full text-muted-foreground"
               >
-                <Eye className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Просмотр</span>
-              </Button>
-              <Button 
-                onClick={() => handleCatalogExport('download')} 
-                disabled={catalogLoading}
-                variant="outline"
-                data-testid="catalog-download-btn"
-              >
-                {catalogLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-1" />
-                    <span className="hidden sm:inline">Скачать</span>
-                  </>
-                )}
-              </Button>
-              <Button 
-                onClick={() => handleCatalogExport('print')} 
-                disabled={catalogLoading || catalogFormat !== 'pdf'}
-                data-testid="catalog-print-btn"
-              >
-                <Printer className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Печать</span>
+                + Добавить члена комиссии
               </Button>
             </div>
 
-            {/* Info */}
-            <div className="p-3 bg-blue-950/30 border border-blue-800/30 rounded-lg text-xs text-blue-300">
-              <p className="font-medium mb-1">Содержание каталога:</p>
-              <ul className="list-disc list-inside space-y-0.5 text-blue-400">
-                <li>Название и QR-код объекта</li>
-                <li>Категория и характеристики</li>
-                <li>Местоположение (этаж, кабинет, отдел)</li>
-                <li>МОЛ и состояние</li>
-                {includePhotos && <li>Фотографии объекта</li>}
-              </ul>
+            <div className="pt-3 border-t space-y-2">
+              <Label className="text-sm font-medium">Исполнитель:</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="Должность"
+                  value={executor.position}
+                  onChange={(e) => setExecutor(prev => ({ ...prev, position: e.target.value }))}
+                  className="text-sm"
+                />
+                <Input
+                  placeholder="ФИО"
+                  value={executor.name}
+                  onChange={(e) => setExecutor(prev => ({ ...prev, name: e.target.value }))}
+                  className="text-sm"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Photo Archive Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="w-5 h-5 text-primary" />
-            Фотоархив
-          </CardTitle>
-          <CardDescription>
-            Информация о хранении фотографий
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="font-medium mb-2">Excel с фото:</p>
-              <p className="text-sm text-muted-foreground">
-                При выборе "Excel с фото" изображения будут встроены непосредственно в ячейки таблицы. 
-                Файл может быть большим при большом количестве объектов.
-              </p>
-            </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="font-medium mb-2">PDF каталог:</p>
-              <p className="text-sm text-muted-foreground">
-                PDF формируется как готовый документ для печати. 
-                На каждой странице размещаются карточки объектов с фото и всеми данными.
-              </p>
-            </div>
+      {/* Action Buttons */}
+      <Card className="border-primary/30">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={() => handleExport('preview')} 
+              disabled={loading}
+              variant="outline"
+              className="flex-1"
+              data-testid="preview-btn"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Предпросмотр PDF
+            </Button>
+            <Button 
+              onClick={() => handleExport('download')} 
+              disabled={loading}
+              variant="outline"
+              className="flex-1"
+              data-testid="download-pdf-btn"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              Скачать PDF
+            </Button>
+            <Button 
+              onClick={() => handleExport('print')} 
+              disabled={loading}
+              className="flex-1"
+              data-testid="print-btn"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Печать
+            </Button>
+            <Button 
+              onClick={handleExportExcel} 
+              disabled={loading}
+              variant="secondary"
+              className="flex-1"
+              data-testid="download-excel-btn"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Excel
+            </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-6xl h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <DocIcon className="w-5 h-5" />
+                {DOCUMENT_TYPES[docType]?.name}
+              </DialogTitle>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = previewUrl;
+                    link.setAttribute('download', `${DOCUMENT_TYPES[docType].name}.pdf`);
+                    link.click();
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Скачать
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    const printWindow = window.open(previewUrl, '_blank');
+                    if (printWindow) {
+                      printWindow.onload = () => printWindow.print();
+                    }
+                  }}
+                >
+                  <Printer className="w-4 h-4 mr-1" />
+                  Печать
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 p-4 pt-2">
+            {previewUrl && (
+              <iframe
+                ref={iframeRef}
+                src={previewUrl}
+                className="w-full h-full border rounded-lg"
+                title="PDF Preview"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
