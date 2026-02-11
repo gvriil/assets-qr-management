@@ -469,6 +469,14 @@ export default function ImportPage() {
               Проверить данные
             </Button>
           </div>
+          
+          {/* Debug: Current Mapping */}
+          <div className="p-3 bg-zinc-800 rounded text-xs text-zinc-400 font-mono">
+            <p className="font-medium mb-1">Текущий маппинг:</p>
+            <p>name: {mapping.name || '(не выбрано)'}</p>
+            <p>category: {mapping.category || '-'}</p>
+            <p>characteristics: {mapping.characteristics || '-'}</p>
+          </div>
         </div>
       )}
 
