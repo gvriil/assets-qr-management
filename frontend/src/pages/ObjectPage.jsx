@@ -639,7 +639,7 @@ export default function ObjectPage() {
       </div>
 
       {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 p-4">
+      <div className="fixed bottom-16 left-0 right-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 p-4 z-40">
         <div className="flex gap-3 max-w-2xl mx-auto">
           <Button
             variant="default"
