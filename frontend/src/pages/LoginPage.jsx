@@ -44,7 +44,8 @@ export default function LoginPage() {
         toast.success('Код подтверждения отправлен');
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Ошибка входа');
+      const errorMsg = err.response?.data?.detail;
+      toast.error(typeof errorMsg === 'string' ? errorMsg : 'Ошибка входа');
     } finally {
       setLoading(false);
     }
