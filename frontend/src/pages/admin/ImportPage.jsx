@@ -13,9 +13,10 @@ import {
 } from 'lucide-react';
 
 const FIELD_OPTIONS = [
-  { value: 'name', label: 'Наименование', required: true },
+  { value: 'name', label: 'Наименование', required: true, hint: 'Можно использовать колонку "Описание"' },
   { value: 'category', label: 'Категория' },
   { value: 'characteristics', label: 'Характеристики' },
+  { value: 'description', label: 'Описание (альтернатива названию)' },
   { value: 'serial_number', label: 'Серийный номер' },
   { value: 'inventory_number', label: 'Инвентарный номер' },
   { value: 'year', label: 'Год выпуска' },
