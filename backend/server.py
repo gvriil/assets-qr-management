@@ -80,11 +80,33 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
+    invite_code: str  # Required invite code
+    role: str = UserRole.FIELD_WORKER
+
+class UserCreateByAdmin(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
     role: str = UserRole.FIELD_WORKER
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class InviteCodeCreate(BaseModel):
+    role: str = UserRole.FIELD_WORKER
+    max_uses: int = 1
+    expires_days: int = 7
+
+class InviteCodeResponse(BaseModel):
+    id: str
+    code: str
+    role: str
+    max_uses: int
+    used_count: int
+    expires_at: str
+    created_by: str
+    is_active: bool
 
 class Verify2FA(BaseModel):
     email: EmailStr
