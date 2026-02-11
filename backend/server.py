@@ -923,21 +923,31 @@ async def preview_import(file: UploadFile = File(...), user: dict = Depends(requ
     
     content = await file.read()
     
-    if file.filename.endswith('.csv'):
-        df = pd.read_csv(BytesIO(content))
-    else:
-        df = pd.read_excel(BytesIO(content))
-    
-    columns = df.columns.tolist()
-    preview = df.head(5).to_dict('records')
-    total_rows = len(df)
-    
-    return {
-        "columns": columns,
-        "preview": preview,
-        "total_rows": total_rows,
-        "filename": file.filename
-    }
+    try:
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(BytesIO(content), encoding='utf-8')
+        else:
+            df = pd.read_excel(BytesIO(content))
+        
+        # Replace NaN with None for JSON serialization
+        df = df.where(pd.notnull(df), None)
+        
+        columns = df.columns.tolist()
+        # Convert preview to serializable format
+        preview = []
+        for _, row in df.head(5).iterrows():
+            preview.append({col: (str(val) if val is not None else "") for col, val in row.items()})
+        
+        total_rows = len(df)
+        
+        return {
+            "columns": columns,
+            "preview": preview,
+            "total_rows": total_rows,
+            "filename": file.filename
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Ошибка чтения файла: {str(e)}")
 
 @api_router.post("/import/execute")
 async def execute_import(
