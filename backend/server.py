@@ -294,7 +294,7 @@ async def compress_image(file_data: bytes, max_size: int = 1200, quality: int = 
 # ==================== AUTH ROUTES ====================
 
 # Default admin credentials
-DEFAULT_ADMIN_EMAIL = "admin@inventory.local"
+DEFAULT_ADMIN_EMAIL = "admin@inventory.system"
 DEFAULT_ADMIN_PASSWORD = "admin123"
 
 @api_router.on_event("startup")
