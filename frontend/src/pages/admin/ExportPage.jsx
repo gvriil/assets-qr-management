@@ -153,14 +153,25 @@ export default function ExportPage() {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
       const url = window.URL.createObjectURL(blob);
+      const docName = DOCUMENT_TYPES[docType].name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
+      
+      // Download file - use a more reliable approach
       const link = document.createElement('a');
       link.href = url;
-      const docName = DOCUMENT_TYPES[docType].name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
-      link.setAttribute('download', `${docName}.xlsx`);
+      link.download = `${docName}.xlsx`;
+      link.style.display = 'none';
       document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      
+      // Use setTimeout to ensure the link is in DOM
+      setTimeout(() => {
+        link.click();
+        // Cleanup after download starts
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      }, 0);
+      
       toast.success('Excel файл скачан');
     } catch (err) {
       console.error('Excel export error:', err);
