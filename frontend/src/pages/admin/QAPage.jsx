@@ -27,16 +27,17 @@ export default function QAPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(null);
   const [page, setPage] = useState(0);
+  const [sortBy, setSortBy] = useState('date_desc');
   const limit = 20;
 
   useEffect(() => {
     loadQueue();
-  }, [activeTab, page]);
+  }, [activeTab, page, sortBy]);
 
   const loadQueue = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/qa/queue?filter_type=${activeTab}&skip=${page * limit}&limit=${limit}`);
+      const res = await api.get(`/qa/queue?filter_type=${activeTab}&skip=${page * limit}&limit=${limit}&sort=${sortBy}`);
       setItems(res.data.items);
       setTotal(res.data.total);
     } catch (err) {
