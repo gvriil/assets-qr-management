@@ -84,13 +84,13 @@ class InventoryAPITester:
         """Test admin login and 2FA"""
         print("\n🔐 Testing Admin Authentication...")
         
-        # Step 1: Login (should trigger 2FA)
+        # Step 1: Login (should trigger 2FA) - using new credentials
         success, response = self.run_test(
             "Admin Login (2FA trigger)",
             "POST",
             "auth/login",
             200,
-            {"email": "admin@inventory.system", "password": "admin123"}
+            {"email": "0020992@gmail.com", "password": "admin123"}
         )
         
         if not success:
