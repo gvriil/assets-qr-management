@@ -79,7 +79,32 @@ code {
   body {
     @apply bg-background text-foreground;
     /* Add padding at bottom for "Made with Emergent" badge */
-    padding-bottom: 50px;
+    padding-bottom: 80px;
+  }
+  
+  /* Fix dark mode text colors for inputs and selects */
+  input, select, textarea {
+    color: inherit;
+  }
+  
+  /* Ensure text is visible in dark mode */
+  .dark input,
+  .dark select,
+  .dark textarea {
+    color: #fafafa;
+  }
+  
+  /* Fix placeholder colors */
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #71717a;
+  }
+  
+  /* Force all text to be visible */
+  .dark .text-zinc-300,
+  .dark .text-zinc-400,
+  .dark .text-zinc-500 {
+    color: inherit;
   }
 }
 
