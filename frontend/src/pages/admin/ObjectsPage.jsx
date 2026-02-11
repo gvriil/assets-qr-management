@@ -46,7 +46,8 @@ export default function ObjectsPage() {
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
     status: searchParams.get('status') || '',
-    category_id: ''
+    category_id: '',
+    sort: 'created_desc'
   });
   const [categories, setCategories] = useState([]);
 
