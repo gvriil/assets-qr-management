@@ -602,7 +602,7 @@ async def create_object(obj: ObjectCreate, user: dict = Depends(get_current_user
 @api_router.get("/objects", response_model=List[ObjectResponse])
 async def list_objects(
     status: Optional[str] = None,
-    category_id: Optional[str] = None,
+    category: Optional[str] = None,
     floor: Optional[str] = None,
     department: Optional[str] = None,
     search: Optional[str] = None,
@@ -614,8 +614,8 @@ async def list_objects(
     query = {}
     if status:
         query["status"] = status
-    if category_id:
-        query["category_id"] = category_id
+    if category:
+        query["category"] = category
     if floor:
         query["floor"] = floor
     if department:
@@ -627,6 +627,9 @@ async def list_objects(
             {"name": {"$regex": search, "$options": "i"}},
             {"qr_code": {"$regex": search, "$options": "i"}},
             {"characteristics": {"$regex": search, "$options": "i"}},
+            {"serial_number": {"$regex": search, "$options": "i"}},
+            {"inventory_number": {"$regex": search, "$options": "i"}},
+            {"mol": {"$regex": search, "$options": "i"}},
             {"external_id": {"$regex": search, "$options": "i"}}
         ]
     
