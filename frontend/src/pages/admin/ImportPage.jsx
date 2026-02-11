@@ -469,15 +469,26 @@ export default function ImportPage() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pb-6">
             <Button variant="outline" onClick={handleReset}>
               Отмена
             </Button>
-            <Button onClick={handlePreviewValidation} disabled={loading} data-testid="preview-btn">
+            <Button 
+              onClick={handlePreviewValidation} 
+              disabled={loading || (!mapping.name && !mapping.description)} 
+              data-testid="preview-btn"
+              size="lg"
+              className="flex-1"
+            >
               <Eye className="w-4 h-4 mr-2" />
-              Проверить данные
+              Далее → Проверить данные
             </Button>
           </div>
+          {!mapping.name && !mapping.description && (
+            <p className="text-sm text-amber-400 pb-4">
+              ⚠️ Укажите колонку для "Наименование" или "Описание" чтобы продолжить
+            </p>
+          )}
         </div>
       )}
 
