@@ -176,16 +176,17 @@ class ObjectResponse(BaseModel):
     floor: Optional[str] = None
     room: Optional[str] = None
     department: Optional[str] = None
-    mol_id: Optional[str] = None
-    mol_name: Optional[str] = None
-    complexity: str
-    status: str
+    mol: Optional[str] = None
+    quantity: Optional[str] = None
+    complexity: str = "S"
+    status: str = "new"
     photos: List[str] = []
-    created_at: str
-    updated_at: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     created_by: Optional[str] = None
     assigned_to: Optional[str] = None
     external_id: Optional[str] = None
+    notes: Optional[str] = None
 
 # Reference Models
 class CategoryCreate(BaseModel):
