@@ -279,11 +279,19 @@ def require_roles(*roles):
     return role_checker
 
 async def log_audit(object_id: str, action: str, changes: dict, user_id: str):
+    # Remove _id from changes to avoid serialization issues
+    clean_changes = {}
+    for key, val in changes.items():
+        if isinstance(val, dict):
+            clean_changes[key] = {k: v for k, v in val.items() if k != "_id"}
+        else:
+            clean_changes[key] = val
+    
     await db.audit_log.insert_one({
         "id": str(uuid.uuid4()),
         "object_id": object_id,
         "action": action,
-        "changes": changes,
+        "changes": clean_changes,
         "user_id": user_id,
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
