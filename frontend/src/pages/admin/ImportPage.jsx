@@ -35,14 +35,12 @@ const FIELD_OPTIONS = [
 const validateRow = (row, mapping) => {
   const errors = [];
   
-  // Check required field - name
-  if (mapping.name) {
-    const nameValue = row[mapping.name];
-    if (!nameValue || String(nameValue).trim() === '') {
-      errors.push('Отсутствует наименование');
-    }
-  } else {
-    errors.push('Поле "Наименование" не сопоставлено');
+  // Check required field - name OR description as fallback
+  const hasName = mapping.name && row[mapping.name] && String(row[mapping.name]).trim() !== '';
+  const hasDescription = mapping.description && row[mapping.description] && String(row[mapping.description]).trim() !== '';
+  
+  if (!hasName && !hasDescription) {
+    errors.push('Отсутствует наименование или описание');
   }
   
   // Check quantity is a number
