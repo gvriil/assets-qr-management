@@ -1226,7 +1226,7 @@ async def export_objects(
     if status:
         query["status"] = status
     
-    objects = await db.objects.find(query, {"_id": 0}).to_list(100000)
+    objects = await db.objects.find(query, {"_id": 0}).to_list(10000)
     
     df = pd.DataFrame(objects)
     
@@ -1270,7 +1270,7 @@ async def export_catalog(
     if status:
         query["status"] = status
     
-    objects = await db.objects.find(query, {"_id": 0}).sort("name", 1).to_list(100000)
+    objects = await db.objects.find(query, {"_id": 0}).sort("name", 1).to_list(10000)
     
     if not objects:
         raise HTTPException(status_code=404, detail="Нет объектов для экспорта")
@@ -1526,7 +1526,7 @@ async def export_official_document(
     if room:
         query["room"] = {"$regex": room, "$options": "i"}
     
-    objects = await db.objects.find(query, {"_id": 0}).sort("name", 1).to_list(100000)
+    objects = await db.objects.find(query, {"_id": 0}).sort("name", 1).to_list(10000)
     
     if not objects:
         raise HTTPException(status_code=404, detail="Нет объектов для экспорта")
