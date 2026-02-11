@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { toast } from 'sonner';
 import { 
   Loader2, CheckCircle, XCircle, Clock, ImageOff, 
-  AlertTriangle, ExternalLink, ChevronLeft, ChevronRight 
+  AlertTriangle, ExternalLink, ChevronLeft, ChevronRight, ArrowUpDown, Calendar, User 
 } from 'lucide-react';
 
 const STATUS_LABELS = {
@@ -104,9 +104,46 @@ export default function QAPage() {
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4 mt-4">
-          <p className="text-sm text-muted-foreground">
-            Найдено: {total}
-          </p>
+          {/* Info bar with count and sorting */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Найдено: <strong>{total}</strong> объект(ов)
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Сортировка:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => { setSortBy(e.target.value); setPage(0); }}
+                className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+                data-testid="qa-sort-select"
+              >
+                <option value="date_desc">По дате (новые сначала)</option>
+                <option value="date_asc">По дате (старые сначала)</option>
+                <option value="name_asc">По названию (А-Я)</option>
+                <option value="floor_asc">По этажу</option>
+                <option value="user_asc">По исполнителю</option>
+              </select>
+            </div>
+          </div>
+
+          {/* QA Process Info */}
+          {activeTab === 'pending' && items.length > 0 && (
+            <Card className="bg-blue-950/20 border-blue-800/30">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-blue-400 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-300 mb-1">Процесс проверки:</p>
+                    <ol className="list-decimal list-inside text-blue-400 space-y-1">
+                      <li>Нажмите "Открыть" чтобы просмотреть карточку объекта целиком</li>
+                      <li>Проверьте заполненность данных, качество фотографий и соответствие категории</li>
+                      <li>Нажмите <CheckCircle className="w-4 h-4 inline text-emerald-500" /> для подтверждения или <XCircle className="w-4 h-4 inline text-red-500" /> для отклонения</li>
+                    </ol>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {loading ? (
             <div className="flex justify-center py-12">
