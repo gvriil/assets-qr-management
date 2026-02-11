@@ -3,13 +3,13 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, Plus, UserPlus, Edit, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, Plus, Copy, Trash2, Key, UserPlus, Users } from 'lucide-react';
 
 const ROLE_LABELS = {
   admin: 'Администратор',
@@ -29,27 +29,44 @@ const ROLE_COLORS = {
 
 export default function UsersPage() {
   const { api } = useAuth();
+  const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  
+  // Create user dialog
+  const [showUserDialog, setShowUserDialog] = useState(false);
   const [newUser, setNewUser] = useState({
     email: '',
     password: '',
     name: '',
     role: 'field_worker'
   });
-  const [creating, setCreating] = useState(false);
+  
+  // Create invite dialog
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [newInvite, setNewInvite] = useState({
+    role: 'field_worker',
+    max_uses: 1,
+    expires_days: 7
+  });
+  
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadUsers();
+    loadData();
   }, []);
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     try {
-      const res = await api.get('/users');
-      setUsers(res.data);
+      const [usersRes, invitesRes] = await Promise.all([
+        api.get('/users'),
+        api.get('/invites')
+      ]);
+      setUsers(usersRes.data);
+      setInvites(invitesRes.data);
     } catch (err) {
-      toast.error('Ошибка загрузки пользователей');
+      toast.error('Ошибка загрузки данных');
     } finally {
       setLoading(false);
     }
@@ -61,17 +78,52 @@ export default function UsersPage() {
       return;
     }
 
-    setCreating(true);
+    setSaving(true);
     try {
-      await api.post('/auth/register', newUser);
+      await api.post('/auth/register-by-admin', newUser);
       toast.success('Пользователь создан');
-      setShowCreateDialog(false);
+      setShowUserDialog(false);
       setNewUser({ email: '', password: '', name: '', role: 'field_worker' });
-      loadUsers();
+      loadData();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Ошибка создания');
     } finally {
-      setCreating(false);
+      setSaving(false);
+    }
+  };
+
+  const handleCreateInvite = async () => {
+    setSaving(true);
+    try {
+      const res = await api.post('/invites', newInvite);
+      toast.success('Инвайт создан');
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(res.data.code);
+      toast.success(`Код скопирован: ${res.data.code}`);
+      
+      setShowInviteDialog(false);
+      setNewInvite({ role: 'field_worker', max_uses: 1, expires_days: 7 });
+      loadData();
+    } catch (err) {
+      toast.error('Ошибка создания инвайта');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCopyCode = async (code) => {
+    await navigator.clipboard.writeText(code);
+    toast.success('Код скопирован');
+  };
+
+  const handleDeactivateInvite = async (inviteId) => {
+    try {
+      await api.delete(`/invites/${inviteId}`);
+      toast.success('Инвайт деактивирован');
+      loadData();
+    } catch (err) {
+      toast.error('Ошибка');
     }
   };
 
@@ -79,21 +131,13 @@ export default function UsersPage() {
     try {
       await api.put(`/users/${userId}`, { is_active: !currentStatus });
       toast.success(currentStatus ? 'Пользователь деактивирован' : 'Пользователь активирован');
-      loadUsers();
+      loadData();
     } catch (err) {
       toast.error('Ошибка обновления');
     }
   };
 
-  const handleChangeRole = async (userId, newRole) => {
-    try {
-      await api.put(`/users/${userId}`, { role: newRole });
-      toast.success('Роль обновлена');
-      loadUsers();
-    } catch (err) {
-      toast.error('Ошибка обновления');
-    }
-  };
+  const activeInvites = invites.filter(inv => inv.is_active && new Date(inv.expires_at) > new Date());
 
   return (
     <div className="space-y-6" data-testid="users-page">
@@ -102,155 +146,265 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold font-['Barlow_Condensed'] uppercase tracking-tight">
             Пользователи
           </h1>
-          <p className="text-muted-foreground">Всего: {users.length}</p>
+          <p className="text-muted-foreground">
+            {users.length} пользователей • {activeInvites.length} активных инвайтов
+          </p>
         </div>
 
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button data-testid="create-user-btn">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Добавить
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Новый пользователь</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  placeholder="email@example.com"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                  data-testid="new-user-email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Имя</Label>
-                <Input
-                  placeholder="Иван Иванов"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                  data-testid="new-user-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Пароль</Label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                  data-testid="new-user-password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Роль</Label>
-                <Select 
-                  value={newUser.role} 
-                  onValueChange={(v) => setNewUser(prev => ({ ...prev, role: v }))}
-                >
-                  <SelectTrigger data-testid="new-user-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                Отмена
+        <div className="flex gap-2">
+          {/* Create Invite Dialog */}
+          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="create-invite-btn">
+                <Key className="w-4 h-4 mr-2" />
+                Создать инвайт
               </Button>
-              <Button onClick={handleCreateUser} disabled={creating} data-testid="submit-create-user">
-                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Создать'}
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Новый инвайт-код</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Роль для приглашённого</Label>
+                  <Select
+                    value={newInvite.role}
+                    onValueChange={(v) => setNewInvite(prev => ({ ...prev, role: v }))}
+                  >
+                    <SelectTrigger data-testid="invite-role-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Макс. использований</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={newInvite.max_uses}
+                    onChange={(e) => setNewInvite(prev => ({ ...prev, max_uses: parseInt(e.target.value) || 1 }))}
+                    data-testid="invite-max-uses"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Срок действия (дней)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={newInvite.expires_days}
+                    onChange={(e) => setNewInvite(prev => ({ ...prev, expires_days: parseInt(e.target.value) || 7 }))}
+                    data-testid="invite-expires-days"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>Отмена</Button>
+                <Button onClick={handleCreateInvite} disabled={saving} data-testid="submit-invite-btn">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Создать и скопировать'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Create User Dialog */}
+          <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+            <DialogTrigger asChild>
+              <Button data-testid="create-user-btn">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Добавить напрямую
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Новый пользователь</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                    data-testid="new-user-email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Имя</Label>
+                  <Input
+                    placeholder="Иван Иванов"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                    data-testid="new-user-name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Пароль</Label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                    data-testid="new-user-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Роль</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(v) => setNewUser(prev => ({ ...prev, role: v }))}
+                  >
+                    <SelectTrigger data-testid="new-user-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowUserDialog(false)}>Отмена</Button>
+                <Button onClick={handleCreateUser} disabled={saving} data-testid="submit-create-user">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Создать'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Users Table */}
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Имя</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Роль</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead className="hidden md:table-cell">Дата создания</TableHead>
-              <TableHead className="w-[100px]">Действия</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-                </TableCell>
-              </TableRow>
-            ) : users.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Пользователи не найдены
-                </TableCell>
-              </TableRow>
-            ) : (
-              users.map((user) => (
-                <TableRow key={user.id} data-testid={`user-row-${user.id}`}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell>
-                    <Select 
-                      value={user.role} 
-                      onValueChange={(v) => handleChangeRole(user.id, v)}
-                    >
-                      <SelectTrigger className="w-[160px]">
-                        <Badge className={`${ROLE_COLORS[user.role]} text-white`}>
-                          {ROLE_LABELS[user.role]}
-                        </Badge>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                      {user.is_active ? 'Активен' : 'Неактивен'}
+      {/* Active Invites */}
+      {activeInvites.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Key className="w-5 h-5 text-primary" />
+              Активные инвайт-коды
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {activeInvites.map(inv => (
+                <div 
+                  key={inv.id} 
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  data-testid={`invite-${inv.id}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <code className="font-mono text-primary font-bold">{inv.code}</code>
+                    <Badge className={`${ROLE_COLORS[inv.role]} text-white`}>
+                      {ROLE_LABELS[inv.role]}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                    {new Date(user.created_at).toLocaleDateString('ru-RU')}
-                  </TableCell>
-                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {inv.used_count}/{inv.max_uses} использовано
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      до {new Date(inv.expires_at).toLocaleDateString('ru-RU')}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleToggleActive(user.id, user.is_active)}
-                      data-testid={`toggle-user-${user.id}`}
+                      onClick={() => handleCopyCode(inv.code)}
+                      data-testid={`copy-invite-${inv.id}`}
                     >
-                      {user.is_active ? (
-                        <ToggleRight className="w-5 h-5 text-emerald-500" />
-                      ) : (
-                        <ToggleLeft className="w-5 h-5 text-muted-foreground" />
-                      )}
+                      <Copy className="w-4 h-4" />
                     </Button>
-                  </TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeactivateInvite(inv.id)}
+                      data-testid={`delete-invite-${inv.id}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Users Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="w-5 h-5" />
+            Список пользователей
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Имя</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Роль</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead className="hidden md:table-cell">Дата</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      Нет пользователей
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user.id} data-testid={`user-row-${user.id}`}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                      <TableCell>
+                        <Badge className={`${ROLE_COLORS[user.role]} text-white`}>
+                          {ROLE_LABELS[user.role]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.is_active ? 'default' : 'secondary'}>
+                          {user.is_active ? 'Активен' : 'Неактивен'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                        {new Date(user.created_at).toLocaleDateString('ru-RU')}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleActive(user.id, user.is_active)}
+                          data-testid={`toggle-user-${user.id}`}
+                        >
+                          {user.is_active ? '🔒' : '🔓'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
