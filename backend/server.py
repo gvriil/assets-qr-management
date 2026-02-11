@@ -1516,7 +1516,7 @@ async def export_official_document(
     if commission:
         try:
             commission_data = json.loads(commission)
-        except:
+        except (json.JSONDecodeError, TypeError):
             pass
     
     # Build query
@@ -1683,7 +1683,7 @@ async def export_official_document(
                     try:
                         img = RLImage(str(photo_path), width=20*mm, height=20*mm)
                         row[photo_col] = img
-                    except:
+                    except Exception:
                         row[photo_col] = '[Ошибка]'
             
             table_data.append(row)
