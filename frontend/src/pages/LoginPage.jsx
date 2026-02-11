@@ -252,22 +252,18 @@ export default function LoginPage() {
                 <span className="text-sm">Двухфакторная аутентификация</span>
               </div>
               
-              <div className="flex justify-center">
-                <InputOTP 
-                  maxLength={6} 
-                  value={code} 
-                  onChange={setCode}
-                  data-testid="otp-input"
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} className="bg-zinc-800 border-zinc-700 text-white" />
-                    <InputOTPSlot index={1} className="bg-zinc-800 border-zinc-700 text-white" />
-                    <InputOTPSlot index={2} className="bg-zinc-800 border-zinc-700 text-white" />
-                    <InputOTPSlot index={3} className="bg-zinc-800 border-zinc-700 text-white" />
-                    <InputOTPSlot index={4} className="bg-zinc-800 border-zinc-700 text-white" />
-                    <InputOTPSlot index={5} className="bg-zinc-800 border-zinc-700 text-white" />
-                  </InputOTPGroup>
-                </InputOTP>
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Введите 6-значный код</Label>
+                <Input
+                  type="text"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="h-14 text-center text-2xl font-mono tracking-widest bg-zinc-800 border-zinc-700 text-white"
+                  data-testid="otp-code-input"
+                  autoFocus
+                />
               </div>
 
               <p className="text-xs text-center text-zinc-500">
