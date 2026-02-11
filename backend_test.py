@@ -131,24 +131,35 @@ class InventoryAPITester:
         
         self.log_result("Login Step 1", True, "2FA code requested")
         
-        # Step 2: Get 2FA code from logs (simulated)
-        # In real scenario, code would be from email/SMS
-        # For MVP, we'll use a common test code pattern
-        test_codes = ["123456", "000000", "111111"]
-        
-        for code in test_codes:
-            verify_data = {
-                "email": self.admin_user["email"],
-                "code": code
-            }
+        # Step 2: Get 2FA code from server logs
+        # For MVP, 2FA codes are logged to server logs
+        import subprocess
+        try:
+            # Get the latest 2FA code from logs
+            result = subprocess.run([
+                'bash', '-c', 
+                f'tail -n 20 /var/log/supervisor/backend.*.log | grep "2FA code for {self.admin_user["email"]}" | tail -1 | grep -o "[0-9]\\{{6\\}}"'
+            ], capture_output=True, text=True, timeout=10)
             
-            success, response = self.make_request('POST', '/auth/verify-2fa', verify_data)
-            if success and response.get('access_token'):
-                self.token = response['access_token']
-                self.log_result("Login Step 2 (2FA)", True, f"Token received with code: {code}")
-                return True
+            if result.returncode == 0 and result.stdout.strip():
+                code = result.stdout.strip()
+                verify_data = {
+                    "email": self.admin_user["email"],
+                    "code": code
+                }
+                
+                success, response = self.make_request('POST', '/auth/verify-2fa', verify_data)
+                if success and response.get('access_token'):
+                    self.token = response['access_token']
+                    self.log_result("Login Step 2 (2FA)", True, f"Token received with code: {code}")
+                    return True
+                else:
+                    self.log_result("Login Step 2 (2FA)", False, f"2FA verification failed with code: {code}")
+            else:
+                self.log_result("Login Step 2 (2FA)", False, "Could not extract 2FA code from logs")
+        except Exception as e:
+            self.log_result("Login Step 2 (2FA)", False, f"Error getting 2FA code: {str(e)}")
         
-        self.log_result("Login Step 2 (2FA)", False, "No valid 2FA code found")
         return False
 
     def test_auth_me(self):
