@@ -21,13 +21,16 @@ import {
 export default function ScannerPage() {
   const navigate = useNavigate();
   const { user, logout, api } = useAuth();
-  const { isOnline, pendingCount, syncing, syncActions } = useOffline();
+  const { isOnline, pendingCount, syncing, syncActions, clearFieldSession, getFieldSession } = useOffline();
   
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [lastScanned, setLastScanned] = useState(null);
   const scannerRef = useRef(null);
   const html5QrRef = useRef(null);
+  
+  // Get current session info
+  const session = getFieldSession();
 
   const startScanner = useCallback(async () => {
     if (html5QrRef.current) return;
