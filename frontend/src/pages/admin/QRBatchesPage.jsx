@@ -148,13 +148,13 @@ export default function QRBatchesPage() {
               Создать партию
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Новая партия QR кодов</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Название партии</Label>
+                <Label>Название партии *</Label>
                 <Input
                   placeholder="Партия #1 - Этаж 2"
                   value={newBatch.name}
@@ -163,7 +163,7 @@ export default function QRBatchesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Количество этикеток</Label>
+                <Label>Количество этикеток *</Label>
                 <Input
                   type="number"
                   min={1}
@@ -181,8 +181,71 @@ export default function QRBatchesPage() {
                   onChange={(e) => setNewBatch(prev => ({ ...prev, prefix: e.target.value }))}
                   data-testid="batch-prefix-input"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Пример: E2-INV-ABC12345
+              </div>
+              
+              {/* Label Data Fields */}
+              <div className="pt-3 border-t">
+                <p className="text-sm font-medium mb-3 text-muted-foreground">
+                  Данные для этикетки (будут напечатаны рядом с QR):
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">ОИВ</Label>
+                    <Input
+                      placeholder="ОИВ..."
+                      value={newBatch.oiv}
+                      onChange={(e) => setNewBatch(prev => ({ ...prev, oiv: e.target.value }))}
+                      data-testid="batch-oiv-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Этаж</Label>
+                    <Input
+                      placeholder="2"
+                      value={newBatch.floor}
+                      onChange={(e) => setNewBatch(prev => ({ ...prev, floor: e.target.value }))}
+                      data-testid="batch-floor-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Управление</Label>
+                    <Input
+                      placeholder="Управление..."
+                      value={newBatch.department}
+                      onChange={(e) => setNewBatch(prev => ({ ...prev, department: e.target.value }))}
+                      data-testid="batch-department-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Отдел</Label>
+                    <Input
+                      placeholder="Отдел..."
+                      value={newBatch.section}
+                      onChange={(e) => setNewBatch(prev => ({ ...prev, section: e.target.value }))}
+                      data-testid="batch-section-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Место / Помещение</Label>
+                    <Input
+                      placeholder="Кабинет 205"
+                      value={newBatch.location}
+                      onChange={(e) => setNewBatch(prev => ({ ...prev, location: e.target.value }))}
+                      data-testid="batch-location-input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">ФИО (МОЛ)</Label>
+                    <Input
+                      placeholder="Иванов И.И."
+                      value={newBatch.mol}
+                      onChange={(e) => setNewBatch(prev => ({ ...prev, mol: e.target.value }))}
+                      data-testid="batch-mol-input"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Формат этикетки: ОИВ - ЭТАЖ - УПРАВЛЕНИЕ - ОТДЕЛ - МЕСТО - ФИО
                 </p>
               </div>
             </div>
