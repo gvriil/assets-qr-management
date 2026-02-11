@@ -157,6 +157,38 @@ export const OfflineProvider = ({ children, api }) => {
     setPendingActions([]);
   };
 
+  // Field session storage - saves common fields between objects
+  const SESSION_KEY = 'fieldSession';
+  
+  const getFieldSession = () => {
+    try {
+      const session = localStorage.getItem(SESSION_KEY);
+      return session ? JSON.parse(session) : {
+        floor: '',
+        department: '',
+        mol: '',
+        category: '',
+        room: ''
+      };
+    } catch {
+      return { floor: '', department: '', mol: '', category: '', room: '' };
+    }
+  };
+  
+  const saveFieldSession = (fields) => {
+    try {
+      const current = getFieldSession();
+      const updated = { ...current, ...fields };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error saving field session:', e);
+    }
+  };
+  
+  const clearFieldSession = () => {
+    localStorage.removeItem(SESSION_KEY);
+  };
+
   return (
     <OfflineContext.Provider value={{
       isOnline,
@@ -171,7 +203,11 @@ export const OfflineProvider = ({ children, api }) => {
       cacheReferences,
       getCachedReferences,
       clearCache,
-      pendingCount: pendingActions.length
+      pendingCount: pendingActions.length,
+      // Field session
+      getFieldSession,
+      saveFieldSession,
+      clearFieldSession
     }}>
       {children}
     </OfflineContext.Provider>
