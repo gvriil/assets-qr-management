@@ -1977,14 +1977,18 @@ async def get_audit_log(
         query["user_id"] = user_id
     
     cursor = db.audit_log.find(query).sort("timestamp", -1).skip(skip).limit(limit)
-    logs = []
+    logs_list = await cursor.to_list(limit)
     
-    async for log in cursor:
-        # Recursively clean all _id fields from the log
+    # Batch fetch all users to avoid N+1 query
+    user_ids = list(set(log.get("user_id") for log in logs_list if log.get("user_id")))
+    users_cursor = db.users.find({"id": {"$in": user_ids}}, {"_id": 0, "id": 1, "name": 1})
+    users_list = await users_cursor.to_list(len(user_ids) if user_ids else 1)
+    users_dict = {u["id"]: u["name"] for u in users_list}
+    
+    logs = []
+    for log in logs_list:
         log_dict = clean_mongo_ids(log)
-        # Enrich with user name
-        u = await db.users.find_one({"id": log_dict.get("user_id")}, {"_id": 0, "name": 1})
-        log_dict["user_name"] = u["name"] if u else "Неизвестно"
+        log_dict["user_name"] = users_dict.get(log_dict.get("user_id"), "Неизвестно")
         logs.append(log_dict)
     
     return logs
