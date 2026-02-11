@@ -210,15 +210,12 @@ export default function ImportPage() {
       
       // Auto-map columns by name similarity
       const autoMapping = {};
-      console.log('Columns from file:', res.data.columns);
       
       res.data.columns.forEach(col => {
         const colLower = col.toLowerCase();
-        console.log('Processing column:', col, '->', colLower);
         
         if (colLower.includes('наимен') || colLower.includes('название') || colLower === 'name') {
           autoMapping['name'] = col;
-          console.log('Mapped name to:', col);
         } else if (colLower.includes('катег') || colLower === 'category') {
           autoMapping['category'] = col;
         } else if (colLower.includes('характер') || colLower.includes('описан') || colLower === 'description') {
@@ -253,7 +250,6 @@ export default function ImportPage() {
         }
       });
       
-      console.log('Final autoMapping:', autoMapping);
       setMapping(autoMapping);
       
       setStep('mapping');
@@ -267,7 +263,6 @@ export default function ImportPage() {
   };
 
   const handleMappingChange = (field, column) => {
-    console.log('Mapping change:', field, '->', column);
     if (column === '') {
       // Remove mapping when "Not used" selected
       setMapping(prev => {
@@ -281,8 +276,6 @@ export default function ImportPage() {
   };
 
   const handlePreviewValidation = () => {
-    console.log('Current mapping before validation:', mapping);
-    
     // Allow either name OR description
     if (!mapping.name && !mapping.description) {
       toast.error('Укажите колонку для наименования или описания');
