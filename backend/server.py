@@ -1199,7 +1199,7 @@ async def export_catalog(
                     try:
                         img = RLImage(str(photo_path), width=40*mm, height=40*mm)
                         card_data.append([img])
-                    except:
+                    except Exception:
                         card_data.append([Paragraph("[Фото недоступно]", small_style)])
                 else:
                     card_data.append([Paragraph("[Фото не найдено]", small_style)])
