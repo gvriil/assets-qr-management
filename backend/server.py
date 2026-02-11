@@ -1593,40 +1593,44 @@ async def export_official_document(
         
         styles = getSampleStyleSheet()
         
-        # Custom styles
+        # Custom styles with Cyrillic font
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=14,
             alignment=1,  # Center
-            spaceAfter=10*mm
+            spaceAfter=10*mm,
+            fontName=CYRILLIC_FONT_BOLD
         )
         appendix_style = ParagraphStyle(
             'Appendix',
             parent=styles['Normal'],
             fontSize=10,
             alignment=2,  # Right
-            spaceAfter=5*mm
+            spaceAfter=5*mm,
+            fontName=CYRILLIC_FONT
         )
         header_style = ParagraphStyle(
             'TableHeader',
             parent=styles['Normal'],
             fontSize=8,
             alignment=1,
-            fontName='Helvetica-Bold'
+            fontName=CYRILLIC_FONT_BOLD
         )
         cell_style = ParagraphStyle(
             'TableCell',
             parent=styles['Normal'],
             fontSize=7,
             alignment=0,
-            leading=9
+            leading=9,
+            fontName=CYRILLIC_FONT
         )
         signature_style = ParagraphStyle(
             'Signature',
             parent=styles['Normal'],
             fontSize=9,
-            spaceBefore=5*mm
+            spaceBefore=5*mm,
+            fontName=CYRILLIC_FONT
         )
         
         elements = []
