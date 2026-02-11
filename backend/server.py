@@ -1432,12 +1432,15 @@ async def get_audit_log(
     if user_id:
         query["user_id"] = user_id
     
-    logs = await db.audit_log.find(query, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+    cursor = db.audit_log.find(query).sort("timestamp", -1).skip(skip).limit(limit)
+    logs = []
     
-    # Enrich with user names
-    for log in logs:
-        u = await db.users.find_one({"id": log["user_id"]}, {"_id": 0})
-        log["user_name"] = u["name"] if u else "Неизвестно"
+    async for log in cursor:
+        log_dict = {k: v for k, v in log.items() if k != "_id"}
+        # Enrich with user name
+        u = await db.users.find_one({"id": log_dict.get("user_id")}, {"_id": 0, "name": 1})
+        log_dict["user_name"] = u["name"] if u else "Неизвестно"
+        logs.append(log_dict)
     
     return logs
 
