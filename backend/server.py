@@ -494,6 +494,46 @@ async def update_user(user_id: str, data: dict, admin: dict = Depends(require_ro
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return {"message": "Обновлено"}
 
+# ==================== INVITE CODES ROUTES ====================
+
+@api_router.post("/invites", response_model=InviteCodeResponse)
+async def create_invite(data: InviteCodeCreate, user: dict = Depends(require_roles(UserRole.ADMIN))):
+    """Create a new invite code (admin only)"""
+    invite_id = str(uuid.uuid4())
+    code = generate_invite_code()
+    
+    invite_doc = {
+        "id": invite_id,
+        "code": code,
+        "role": data.role,
+        "max_uses": data.max_uses,
+        "used_count": 0,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=data.expires_days)).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"],
+        "is_active": True
+    }
+    await db.invite_codes.insert_one(invite_doc)
+    
+    return InviteCodeResponse(**invite_doc)
+
+@api_router.get("/invites", response_model=List[InviteCodeResponse])
+async def list_invites(user: dict = Depends(require_roles(UserRole.ADMIN))):
+    """List all invite codes"""
+    invites = await db.invite_codes.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [InviteCodeResponse(**inv) for inv in invites]
+
+@api_router.delete("/invites/{invite_id}")
+async def deactivate_invite(invite_id: str, user: dict = Depends(require_roles(UserRole.ADMIN))):
+    """Deactivate an invite code"""
+    result = await db.invite_codes.update_one(
+        {"id": invite_id},
+        {"$set": {"is_active": False}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Инвайт не найден")
+    return {"message": "Инвайт деактивирован"}
+
 # ==================== OBJECTS ROUTES ====================
 
 @api_router.post("/objects", response_model=ObjectResponse)
