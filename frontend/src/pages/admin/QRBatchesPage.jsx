@@ -100,13 +100,23 @@ export default function QRBatchesPage() {
           };
         }
       } else {
-        // Download
+        // Download - use a more reliable approach
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `qr_batch_${batchName}.pdf`);
+        link.download = `qr_batch_${batchName}.pdf`;
+        link.style.display = 'none';
         document.body.appendChild(link);
-        link.click();
-        link.remove();
+        
+        // Use setTimeout to ensure the link is in DOM
+        setTimeout(() => {
+          link.click();
+          // Cleanup after download starts
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+        }, 0);
+        
         toast.success('PDF скачан');
       }
       
