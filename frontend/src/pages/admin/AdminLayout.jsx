@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Routes, Route, NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 import { 
   LayoutDashboard, Package, Users, Upload, QrCode, 
   BookOpen, DollarSign, ClipboardCheck, FileText, 
