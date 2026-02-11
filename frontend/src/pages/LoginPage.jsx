@@ -177,8 +177,8 @@ export default function LoginPage() {
                 {/* Default admin hint */}
                 <div className="mt-4 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                   <p className="text-xs text-zinc-400 text-center">
-                    <strong className="text-zinc-300">Тестовый админ:</strong><br />
-                    admin@inventory.system / admin123
+                    <strong className="text-zinc-300">Админ:</strong><br />
+                    0020992@gmail.com / admin123
                   </p>
                 </div>
               </TabsContent>
