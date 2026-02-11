@@ -63,7 +63,8 @@ export default function LoginPage() {
       toast.success(`Добро пожаловать, ${user.name}!`);
       navigate(user.role === 'admin' || user.role === 'auditor' ? '/admin' : '/scanner');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Неверный код');
+      const errorMsg = err.response?.data?.detail;
+      toast.error(typeof errorMsg === 'string' ? errorMsg : 'Неверный код');
     } finally {
       setLoading(false);
     }
