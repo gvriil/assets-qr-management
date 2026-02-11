@@ -1308,25 +1308,33 @@ async def export_catalog(
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=14,
-            spaceAfter=6
+            spaceAfter=6,
+            fontName=CYRILLIC_FONT_BOLD
         )
         normal_style = ParagraphStyle(
             'CustomNormal',
             parent=styles['Normal'],
             fontSize=9,
-            leading=11
+            leading=11,
+            fontName=CYRILLIC_FONT
         )
         small_style = ParagraphStyle(
             'CustomSmall',
             parent=styles['Normal'],
             fontSize=8,
-            textColor=colors.grey
+            textColor=colors.grey,
+            fontName=CYRILLIC_FONT
+        )
+        main_title_style = ParagraphStyle(
+            'MainTitle',
+            parent=styles['Title'],
+            fontName=CYRILLIC_FONT_BOLD
         )
         
         elements = []
         
         # Title
-        elements.append(Paragraph("КАТАЛОГ ИНВЕНТАРИЗАЦИИ", styles['Title']))
+        elements.append(Paragraph("КАТАЛОГ ИНВЕНТАРИЗАЦИИ", main_title_style))
         elements.append(Paragraph(f"Дата формирования: {datetime.now().strftime('%d.%m.%Y %H:%M')}", small_style))
         elements.append(Paragraph(f"Всего объектов: {len(objects)}", small_style))
         elements.append(Spacer(1, 10*mm))
