@@ -48,7 +48,8 @@ export default function UsersPage() {
   const [newInvite, setNewInvite] = useState({
     role: 'field_worker',
     max_uses: 1,
-    expires_days: 7
+    expires_days: 7,
+    unlimited: false
   });
   
   const [saving, setSaving] = useState(false);
@@ -95,7 +96,12 @@ export default function UsersPage() {
   const handleCreateInvite = async () => {
     setSaving(true);
     try {
-      const res = await api.post('/invites', newInvite);
+      const inviteData = {
+        role: newInvite.role,
+        max_uses: newInvite.max_uses,
+        expires_days: newInvite.unlimited ? 3650 : newInvite.expires_days // 10 years for "unlimited"
+      };
+      const res = await api.post('/invites', inviteData);
       toast.success('Инвайт создан');
       
       // Copy to clipboard
@@ -103,10 +109,10 @@ export default function UsersPage() {
       toast.success(`Код скопирован: ${res.data.code}`);
       
       setShowInviteDialog(false);
-      setNewInvite({ role: 'field_worker', max_uses: 1, expires_days: 7 });
+      setNewInvite({ role: 'field_worker', max_uses: 1, expires_days: 7, unlimited: false });
       loadData();
     } catch (err) {
-      toast.error('Ошибка создания инвайта');
+      toast.error(err.response?.data?.detail || 'Ошибка создания инвайта');
     } finally {
       setSaving(false);
     }
