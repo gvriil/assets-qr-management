@@ -288,7 +288,7 @@ export default function ObjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pb-24" data-testid="object-page">
+    <div className="min-h-screen bg-zinc-950 text-white pb-40" data-testid="object-page">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-zinc-900/95 backdrop-blur border-b border-zinc-800">
         <div className="flex items-center justify-between p-4">
