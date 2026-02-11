@@ -177,6 +177,7 @@ export default function ImportPage() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [mapping, setMapping] = useState({});
+  const [parseCommas, setParseCommas] = useState(true); // Разбивать по запятым
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   
