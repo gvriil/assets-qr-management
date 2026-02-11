@@ -1383,6 +1383,353 @@ async def export_catalog(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+# ==================== OFFICIAL DOCUMENT EXPORT ====================
+
+@api_router.get("/export/document")
+async def export_official_document(
+    doc_type: str = "catalog",  # photo_archive, catalog, inventory_list, specification_report
+    format: str = "pdf",  # pdf or xlsx
+    status: Optional[str] = None,
+    room: Optional[str] = None,
+    commission: Optional[str] = None,  # JSON string with commission data
+    user: dict = Depends(get_current_user)
+):
+    """Generate official documents according to technical specification"""
+    import pandas as pd
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import mm, cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    import xlsxwriter
+    import json
+    
+    # Parse commission data
+    commission_data = {"members": [], "executor": {"position": "", "name": ""}}
+    if commission:
+        try:
+            commission_data = json.loads(commission)
+        except:
+            pass
+    
+    # Build query
+    query = {}
+    if status and status != "all":
+        query["status"] = status
+    if room:
+        query["room"] = {"$regex": room, "$options": "i"}
+    
+    objects = await db.objects.find(query, {"_id": 0}).sort("name", 1).to_list(100000)
+    
+    if not objects:
+        raise HTTPException(status_code=404, detail="Нет объектов для экспорта")
+    
+    buffer = BytesIO()
+    
+    # Document titles and headers
+    DOC_CONFIGS = {
+        "photo_archive": {
+            "title": "Общий фотоархив имущества",
+            "appendix": "Приложение № 2\nк Техническому заданию",
+            "headers": ["№ п/п", "Инвентаризационный номер АО «ЦУГИ»", "ФОТО"],
+            "col_widths": [15*mm, 60*mm, 100*mm]
+        },
+        "catalog": {
+            "title": "Каталог имущества, находящегося на объекте.",
+            "appendix": "Приложение № 3\nк Техническому заданию",
+            "headers": ["№ п/п", "Наименование объекта", "Характеристика/Описание", "Серийный номер",
+                       "Инв. номер АО «ЦУГИ»", "Визуализация (фото)", "Кол-во", "Примечание", "План кабинета"],
+            "col_widths": [12*mm, 35*mm, 35*mm, 25*mm, 25*mm, 25*mm, 15*mm, 25*mm, 25*mm]
+        },
+        "inventory_list": {
+            "title": "Инвентаризационная ведомость.",
+            "appendix": "Приложение № 4\nк Техническому заданию",
+            "headers": ["№ п/п", "Инв. номер АО «ЦУГИ»", "Порядковый номер по спецификации",
+                       "Предыдущий инв. номер", "Наименование инв. единицы", "Артикул",
+                       "Год выпуска", "Паспорт, сертификат", "Тех. состояние", "Местонахождение"],
+            "col_widths": [10*mm, 22*mm, 20*mm, 20*mm, 30*mm, 18*mm, 15*mm, 22*mm, 22*mm, 25*mm]
+        },
+        "specification_report": {
+            "title": "Отчет по спецификации",
+            "appendix": "Приложение № 5\nк Техническому заданию",
+            "headers": ["№ п/п по спецификации", "Наименование инвентаризационной единицы",
+                       "Инв. номер АО «ЦУГИ»", "Наличие инвентаризационной единицы"],
+            "col_widths": [30*mm, 70*mm, 40*mm, 40*mm]
+        }
+    }
+    
+    config = DOC_CONFIGS.get(doc_type, DOC_CONFIGS["catalog"])
+    
+    if format == "pdf":
+        # PDF Generation
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=15*mm,
+            leftMargin=15*mm,
+            topMargin=15*mm,
+            bottomMargin=20*mm
+        )
+        
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=14,
+            alignment=1,  # Center
+            spaceAfter=10*mm
+        )
+        appendix_style = ParagraphStyle(
+            'Appendix',
+            parent=styles['Normal'],
+            fontSize=10,
+            alignment=2,  # Right
+            spaceAfter=5*mm
+        )
+        header_style = ParagraphStyle(
+            'TableHeader',
+            parent=styles['Normal'],
+            fontSize=8,
+            alignment=1,
+            fontName='Helvetica-Bold'
+        )
+        cell_style = ParagraphStyle(
+            'TableCell',
+            parent=styles['Normal'],
+            fontSize=7,
+            alignment=0,
+            leading=9
+        )
+        signature_style = ParagraphStyle(
+            'Signature',
+            parent=styles['Normal'],
+            fontSize=9,
+            spaceBefore=5*mm
+        )
+        
+        elements = []
+        
+        # Appendix header
+        elements.append(Paragraph(config["appendix"].replace("\n", "<br/>"), appendix_style))
+        elements.append(Spacer(1, 5*mm))
+        
+        # Title
+        elements.append(Paragraph(config["title"], title_style))
+        
+        # Room info if filtered
+        if room:
+            elements.append(Paragraph(f"Кабинет № {room}", styles['Normal']))
+            elements.append(Spacer(1, 5*mm))
+        
+        # Build table data
+        table_data = [[Paragraph(h, header_style) for h in config["headers"]]]
+        
+        for idx, obj in enumerate(objects, 1):
+            row = []
+            
+            if doc_type == "photo_archive":
+                row = [
+                    str(idx),
+                    obj.get('inventory_number', obj.get('qr_code', '')),
+                    ''  # Photo placeholder
+                ]
+            elif doc_type == "catalog":
+                row = [
+                    str(idx),
+                    Paragraph(obj.get('name', '')[:50], cell_style),
+                    Paragraph(obj.get('characteristics', obj.get('description', ''))[:80] if obj.get('characteristics') or obj.get('description') else '', cell_style),
+                    obj.get('serial_number', ''),
+                    obj.get('inventory_number', obj.get('qr_code', '')),
+                    '',  # Photo
+                    obj.get('quantity', '1'),
+                    Paragraph(obj.get('notes', '')[:40] if obj.get('notes') else '', cell_style),
+                    ''  # Plan
+                ]
+            elif doc_type == "inventory_list":
+                row = [
+                    str(idx),
+                    obj.get('inventory_number', obj.get('qr_code', '')),
+                    obj.get('external_id', ''),
+                    '',  # Previous inv number
+                    Paragraph(obj.get('name', '')[:40], cell_style),
+                    '',  # Article
+                    obj.get('year', ''),
+                    '',  # Certificate
+                    obj.get('condition', ''),
+                    f"{obj.get('floor', '')}/{obj.get('room', '')}"
+                ]
+            elif doc_type == "specification_report":
+                row = [
+                    obj.get('external_id', str(idx)),
+                    Paragraph(obj.get('name', ''), cell_style),
+                    obj.get('inventory_number', obj.get('qr_code', '')),
+                    'Да' if obj.get('status') == 'verified' else 'На проверке'
+                ]
+            
+            # Add photo for photo_archive and catalog
+            if doc_type in ["photo_archive", "catalog"] and obj.get('photos'):
+                photo_col = 2 if doc_type == "photo_archive" else 5
+                photo_path = PHOTOS_DIR / obj['photos'][0].split('/')[-1]
+                if photo_path.exists():
+                    try:
+                        img = RLImage(str(photo_path), width=20*mm, height=20*mm)
+                        row[photo_col] = img
+                    except:
+                        row[photo_col] = '[Ошибка]'
+            
+            table_data.append(row)
+        
+        # Create table
+        table = Table(table_data, colWidths=config["col_widths"], repeatRows=1)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.9, 0.9, 0.9)),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        
+        elements.append(table)
+        elements.append(Spacer(1, 15*mm))
+        
+        # Commission section
+        commission_text = """
+        <b>Рабочая инвентаризационная комиссия в составе:</b><br/>
+        """
+        for member in commission_data.get("members", []):
+            if member.get("name") or member.get("position"):
+                commission_text += f"{member.get('name', '_____________')}, {member.get('position', '_____________')}<br/>"
+        
+        if not commission_data.get("members"):
+            commission_text += "ФИО, должность_______________________<br/>"
+            commission_text += "ФИО, должность_______________________<br/>"
+            commission_text += "ФИО, должность_______________________<br/>"
+        
+        elements.append(Paragraph(commission_text, signature_style))
+        elements.append(Spacer(1, 10*mm))
+        
+        # Signatures section
+        signature_section = """
+        <b>Члены комиссии</b><br/><br/>
+        ____________________           _________________  ______________________<br/>
+        <font size="7">(должность)                              (подпись)                    (ФИО)</font><br/><br/>
+        ____________________           _________________  ______________________<br/>
+        <font size="7">(должность)                              (подпись)                    (ФИО)</font><br/><br/>
+        ………<br/><br/>
+        <b>Исполнитель:</b><br/><br/>
+        """
+        
+        executor = commission_data.get("executor", {})
+        if executor.get("name") or executor.get("position"):
+            signature_section += f"{executor.get('position', '_______________')}                _________________       {executor.get('name', '_____________________')}<br/>"
+        else:
+            signature_section += "_______________                __________________       _____________________<br/>"
+        
+        signature_section += """
+        <font size="7">(должность)                              (подпись)                    (ФИО)</font><br/><br/>
+        МП.
+        """
+        
+        elements.append(Paragraph(signature_section, signature_style))
+        
+        doc.build(elements)
+        media_type = "application/pdf"
+        filename = f"{doc_type}.pdf"
+        
+    else:
+        # Excel Generation
+        workbook = xlsxwriter.Workbook(buffer, {'in_memory': True})
+        worksheet = workbook.add_worksheet('Документ')
+        
+        # Formats
+        title_format = workbook.add_format({
+            'bold': True,
+            'font_size': 14,
+            'align': 'center',
+            'valign': 'vcenter'
+        })
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#d9d9d9',
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'text_wrap': True
+        })
+        cell_format = workbook.add_format({
+            'border': 1,
+            'align': 'left',
+            'valign': 'top',
+            'text_wrap': True
+        })
+        
+        # Title
+        worksheet.merge_range(0, 0, 0, len(config["headers"]) - 1, config["appendix"].replace("\n", " "), title_format)
+        worksheet.merge_range(1, 0, 1, len(config["headers"]) - 1, config["title"], title_format)
+        
+        # Headers
+        for col, header in enumerate(config["headers"]):
+            worksheet.write(3, col, header, header_format)
+        
+        # Data
+        for row_idx, obj in enumerate(objects, start=4):
+            if doc_type == "photo_archive":
+                worksheet.write(row_idx, 0, row_idx - 3, cell_format)
+                worksheet.write(row_idx, 1, obj.get('inventory_number', obj.get('qr_code', '')), cell_format)
+                worksheet.write(row_idx, 2, '[ФОТО]', cell_format)
+            elif doc_type == "catalog":
+                worksheet.write(row_idx, 0, row_idx - 3, cell_format)
+                worksheet.write(row_idx, 1, obj.get('name', ''), cell_format)
+                worksheet.write(row_idx, 2, obj.get('characteristics', obj.get('description', '')), cell_format)
+                worksheet.write(row_idx, 3, obj.get('serial_number', ''), cell_format)
+                worksheet.write(row_idx, 4, obj.get('inventory_number', obj.get('qr_code', '')), cell_format)
+                worksheet.write(row_idx, 5, '[ФОТО]', cell_format)
+                worksheet.write(row_idx, 6, obj.get('quantity', '1'), cell_format)
+                worksheet.write(row_idx, 7, obj.get('notes', ''), cell_format)
+                worksheet.write(row_idx, 8, '', cell_format)
+            elif doc_type == "inventory_list":
+                worksheet.write(row_idx, 0, row_idx - 3, cell_format)
+                worksheet.write(row_idx, 1, obj.get('inventory_number', obj.get('qr_code', '')), cell_format)
+                worksheet.write(row_idx, 2, obj.get('external_id', ''), cell_format)
+                worksheet.write(row_idx, 3, '', cell_format)
+                worksheet.write(row_idx, 4, obj.get('name', ''), cell_format)
+                worksheet.write(row_idx, 5, '', cell_format)
+                worksheet.write(row_idx, 6, obj.get('year', ''), cell_format)
+                worksheet.write(row_idx, 7, '', cell_format)
+                worksheet.write(row_idx, 8, obj.get('condition', ''), cell_format)
+                worksheet.write(row_idx, 9, f"{obj.get('floor', '')}/{obj.get('room', '')}", cell_format)
+            elif doc_type == "specification_report":
+                worksheet.write(row_idx, 0, obj.get('external_id', str(row_idx - 3)), cell_format)
+                worksheet.write(row_idx, 1, obj.get('name', ''), cell_format)
+                worksheet.write(row_idx, 2, obj.get('inventory_number', obj.get('qr_code', '')), cell_format)
+                worksheet.write(row_idx, 3, 'Да' if obj.get('status') == 'verified' else 'На проверке', cell_format)
+        
+        # Signature rows at the end
+        sig_row = len(objects) + 6
+        worksheet.write(sig_row, 0, "Члены комиссии:", cell_format)
+        worksheet.write(sig_row + 2, 0, "Исполнитель:", cell_format)
+        worksheet.write(sig_row + 4, 0, "МП.", cell_format)
+        
+        workbook.close()
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"{doc_type}.xlsx"
+    
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 # ==================== STATS & DASHBOARD ====================
 
 @api_router.get("/stats/overview")
