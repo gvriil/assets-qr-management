@@ -960,15 +960,15 @@ async def get_batch_pdf(batch_id: str, user: dict = Depends(get_current_user)):
         c.drawImage(str(qr_path), x + 2*mm, y + 2*mm, width=25*mm, height=25*mm)
         
         # Code text
-        c.setFont("Helvetica-Bold", 8)
+        c.setFont(CYRILLIC_FONT_BOLD, 8)
         c.drawString(x + 30*mm, y + 22*mm, code["qr_code"])
-        c.setFont("Helvetica", 5)
+        c.setFont(CYRILLIC_FONT, 5)
         c.drawString(x + 30*mm, y + 16*mm, f"ID: {code['id'][:8]}")
         
         # Label text (ОИВ - ЭТАЖ - УПРАВЛЕНИЕ - ОТДЕЛ - МЕСТО - ФИО)
         code_label = code.get("label_text") or label_text
         if code_label:
-            c.setFont("Helvetica", 5)
+            c.setFont(CYRILLIC_FONT, 5)
             # Split long label into multiple lines if needed
             max_chars = 35
             if len(code_label) > max_chars:
