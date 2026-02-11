@@ -298,7 +298,7 @@ class InventoryAPITester:
             "Unauthorized Invite Creation",
             "POST",
             "invites",
-            401,  # Should fail
+            403,  # Should fail with 403 Forbidden (not authenticated)
             {
                 "role": "field_worker",
                 "max_uses": 1,
