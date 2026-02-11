@@ -175,7 +175,7 @@ export default function LoginPage() {
                 <div className="mt-4 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                   <p className="text-xs text-zinc-400 text-center">
                     <strong className="text-zinc-300">Тестовый админ:</strong><br />
-                    admin@inventory.local / admin123
+                    admin@inventory.system / admin123
                   </p>
                 </div>
               </TabsContent>
