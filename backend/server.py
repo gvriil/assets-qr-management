@@ -1083,11 +1083,30 @@ async def execute_import(
     column_mapping = mapping_data
     fill_down_category = options.get('fillDownCategory', False)
     skip_empty_rows = options.get('skipEmptyRows', True)
+    parse_commas = options.get('parseCommas', True)  # Parse comma-separated descriptions
     
     if file.filename.endswith('.csv'):
-        df = pd.read_csv(BytesIO(content))
+        # Try to detect header row
+        df_raw = pd.read_csv(BytesIO(content), header=None, nrows=10)
+        header_row = 0
+        for idx in range(len(df_raw)):
+            non_null_count = df_raw.iloc[idx].notna().sum()
+            if non_null_count >= 2:
+                row_values = [str(v) for v in df_raw.iloc[idx].dropna().values]
+                if any('Приложение' in v or 'Перечень' in v for v in row_values):
+                    continue
+                if any(v in ['№', 'Описание', 'Наименование', 'Количество', 'Кол-во', 'Категория'] or 
+                       'описан' in v.lower() or 'наимен' in v.lower() 
+                       for v in row_values):
+                    header_row = idx
+                    break
+        df = pd.read_csv(BytesIO(content), header=header_row)
+        df.columns = [str(c).strip() if pd.notna(c) else f'col_{i}' for i, c in enumerate(df.columns)]
     else:
         df = pd.read_excel(BytesIO(content))
+    
+    # Drop completely empty rows
+    df = df.dropna(how='all')
     
     created = 0
     updated = 0
@@ -1099,11 +1118,53 @@ async def execute_import(
     for idx, row in df.iterrows():
         try:
             obj_data = {}
+            description_value = ''
+            
             for target, source in column_mapping.items():
-                if source and source in row:
+                if source and source in row.index:
                     val = row[source]
                     if pd.notna(val):
-                        obj_data[target] = str(val).strip()
+                        val_str = str(val).strip()
+                        if val_str and val_str.lower() != 'nan':
+                            obj_data[target] = val_str
+                            if target in ['description', 'characteristics']:
+                                description_value = val_str
+            
+            # Parse comma-separated description into fields
+            if parse_commas and description_value and ',' in description_value:
+                parts = [p.strip() for p in description_value.split(',') if p.strip()]
+                
+                if parts:
+                    # First part is the main name
+                    if not obj_data.get('name'):
+                        obj_data['name'] = parts[0]
+                    
+                    # Try to extract structured data from remaining parts
+                    remaining = []
+                    for part in parts[1:]:
+                        part_lower = part.lower()
+                        
+                        # Try to identify what this part is
+                        if ('этаж' in part_lower or part_lower.startswith('эт')) and not obj_data.get('floor'):
+                            obj_data['floor'] = part.replace('этаж', '').replace('эт.', '').replace('эт', '').strip()
+                        elif ('каб' in part_lower or 'комн' in part_lower or 'помещ' in part_lower) and not obj_data.get('room'):
+                            obj_data['room'] = part
+                        elif part.isdigit() and len(part) == 4 and not obj_data.get('year'):
+                            obj_data['year'] = part
+                        elif part.replace('-', '').replace('/', '').isalnum() and len(part) > 3 and not obj_data.get('serial_number'):
+                            # Looks like serial number
+                            obj_data['serial_number'] = part
+                        else:
+                            remaining.append(part)
+                    
+                    # Put remaining parts into characteristics and notes
+                    if remaining:
+                        if not obj_data.get('characteristics'):
+                            obj_data['characteristics'] = ', '.join(remaining[:3])
+                        if len(remaining) > 3:
+                            existing_notes = obj_data.get('notes', '')
+                            new_notes = ', '.join(remaining[3:])
+                            obj_data['notes'] = f"{existing_notes}; {new_notes}".strip('; ') if existing_notes else new_notes
             
             # Fill down category from previous row if enabled
             if fill_down_category:
@@ -1122,6 +1183,11 @@ async def execute_import(
             
             if not obj_data.get("name"):
                 errors.append(f"Строка {idx + 2}: отсутствует наименование или описание")
+                continue
+            
+            # Skip rows that look like subtotals
+            name_lower = obj_data.get("name", "").lower()
+            if name_lower.startswith('итого') or name_lower.startswith('всего') or 'перечень' in name_lower:
                 continue
             
             # Check if exists by external_id
