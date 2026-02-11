@@ -13,7 +13,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-} from "../components/ui/sheet";
+} from "../../components/ui/sheet";
 
 const NAV_ITEMS = [
   { path: '/admin', icon: LayoutDashboard, label: 'Дашборд', exact: true },
