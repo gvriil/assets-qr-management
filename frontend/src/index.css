@@ -78,6 +78,8 @@ code {
   }
   body {
     @apply bg-background text-foreground;
+    /* Add padding at bottom for "Made with Emergent" badge */
+    padding-bottom: 50px;
   }
 }
 
