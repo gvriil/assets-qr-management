@@ -395,6 +395,10 @@ export default function ImportPage() {
               <CardTitle>Сопоставление колонок (Mapping Wizard)</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="p-3 bg-amber-950/30 border border-amber-800/30 rounded-lg mb-4 text-sm text-amber-300">
+                <p className="font-medium">💡 Подсказка:</p>
+                <p>Если в вашем файле нет колонки "Наименование", выберите колонку "Описание" — она будет использована как название объекта.</p>
+              </div>
               <div className="space-y-3">
                 {FIELD_OPTIONS.map(opt => (
                   <div key={opt.value} className="flex items-center gap-4">
