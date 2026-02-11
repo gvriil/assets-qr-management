@@ -6,14 +6,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, Save, Camera, Loader2, QrCode, 
-  Clock, User, Mic, MicOff, Trash2, CheckCircle,
-  AlertCircle, History
+  Clock, User, Trash2, CheckCircle, History, Plus
 } from 'lucide-react';
 import {
   Dialog,
@@ -23,11 +21,11 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog";
 
-const COMPLEXITY_LABELS = {
-  S: 'Простой (S)',
-  M: 'Средний (M)',
-  L: 'Сложный (L)'
-};
+const COMPLEXITY_OPTIONS = [
+  { value: 'S', label: 'Простой (S)' },
+  { value: 'M', label: 'Средний (M)' },
+  { value: 'L', label: 'Сложный (L)' }
+];
 
 const STATUS_LABELS = {
   new: 'Новый',
@@ -43,6 +41,13 @@ const STATUS_COLORS = {
   rejected: 'bg-red-500'
 };
 
+const CONDITION_OPTIONS = [
+  'Исправен',
+  'Требует ремонта',
+  'Неисправен',
+  'На списание'
+];
+
 export default function ObjectPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -55,32 +60,37 @@ export default function ObjectPage() {
   
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [object, setObject] = useState({
     name: '',
-    category_id: '',
+    category: '',
     description: '',
     characteristics: '',
+    serial_number: '',
+    inventory_number: '',
+    year: '',
+    condition: '',
     floor: '',
+    room: '',
     department: '',
-    mol_id: '',
+    mol: '',
+    quantity: '1',
     complexity: 'S',
     qr_code: qrFromUrl || '',
     photos: [],
-    status: 'new'
+    status: 'new',
+    notes: ''
   });
   
   const [categories, setCategories] = useState([]);
-  const [references, setReferences] = useState({ floor: [], department: [], mol: [] });
-  const [autocomplete, setAutocomplete] = useState({ name: [], characteristics: [] });
+  const [floors, setFloors] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [mols, setMols] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [voiceActive, setVoiceActive] = useState(false);
-  const [voiceField, setVoiceField] = useState(null);
   
   const fileInputRef = useRef(null);
-  const recognitionRef = useRef(null);
 
-  // Load object data
   useEffect(() => {
     if (!isNew && id) {
       loadObject();
@@ -94,7 +104,6 @@ export default function ObjectPage() {
       setObject(res.data);
       cacheObject(res.data);
       
-      // Load audit log
       const logRes = await api.get(`/audit-log?object_id=${id}`);
       setAuditLog(logRes.data);
     } catch (err) {
@@ -112,42 +121,33 @@ export default function ObjectPage() {
         api.get('/references')
       ]);
       
-      setCategories(catsRes.data);
+      setCategories(catsRes.data.map(c => c.name));
       
-      const grouped = { floor: [], department: [], mol: [] };
+      const floorsArr = [];
+      const deptsArr = [];
+      const molsArr = [];
+      
       refsRes.data.forEach(r => {
-        if (grouped[r.type]) grouped[r.type].push(r);
+        if (r.type === 'floor') floorsArr.push(r.name);
+        if (r.type === 'department') deptsArr.push(r.name);
+        if (r.type === 'mol') molsArr.push(r.name);
       });
-      setReferences(grouped);
+      
+      setFloors(floorsArr);
+      setDepartments(deptsArr);
+      setMols(molsArr);
     } catch (e) {
       console.error('Error loading references:', e);
     }
   };
 
-  // Autocomplete
-  const loadAutocomplete = useCallback(async (field, query) => {
-    if (!query || query.length < 2) return;
-    try {
-      const res = await api.get(`/autocomplete/${field}?q=${encodeURIComponent(query)}`);
-      setAutocomplete(prev => ({ ...prev, [field]: res.data }));
-    } catch (e) {
-      console.error('Autocomplete error:', e);
-    }
-  }, [api]);
-
   const handleChange = (field, value) => {
     setObject(prev => ({ ...prev, [field]: value }));
-    
-    // Trigger autocomplete for certain fields
-    if (['name', 'characteristics'].includes(field)) {
-      loadAutocomplete(field, value);
-    }
   };
 
-  // Save object
   const handleSave = async () => {
     if (!object.name) {
-      toast.error('Введите название объекта');
+      toast.error('Введите наименование объекта');
       return;
     }
 
@@ -164,19 +164,18 @@ export default function ObjectPage() {
           loadObject();
         }
       } else {
-        // Queue for offline sync
         await queueAction(isNew ? 'create' : 'update', id, object);
-        toast.success('Сохранено локально (синхронизация при подключении)');
+        toast.success('Сохранено локально');
         if (isNew) navigate('/scanner');
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Ошибка сохранения');
+      const msg = err.response?.data?.detail;
+      toast.error(typeof msg === 'string' ? msg : 'Ошибка сохранения');
     } finally {
       setSaving(false);
     }
   };
 
-  // Send to verification
   const handleVerify = async () => {
     try {
       await api.post(`/objects/${id}/verify`);
@@ -187,11 +186,16 @@ export default function ObjectPage() {
     }
   };
 
-  // Photo upload
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (isNew) {
+      toast.error('Сначала сохраните объект');
+      return;
+    }
+
+    setUploadingPhoto(true);
     const formData = new FormData();
     formData.append('file', file);
 
@@ -206,52 +210,46 @@ export default function ObjectPage() {
       toast.success('Фото загружено');
     } catch (err) {
       toast.error('Ошибка загрузки фото');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
-  // Voice input
-  const startVoice = (field) => {
-    if (!('webkitSpeechRecognition' in window)) {
-      toast.error('Голосовой ввод не поддерживается');
-      return;
-    }
-
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.lang = 'ru-RU';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setObject(prev => ({
-        ...prev,
-        [field]: prev[field] ? `${prev[field]} ${transcript}` : transcript
-      }));
-      toast.success('Текст распознан');
-    };
-
-    recognition.onerror = () => {
-      toast.error('Ошибка распознавания');
-      setVoiceActive(false);
-    };
-
-    recognition.onend = () => {
-      setVoiceActive(false);
-      setVoiceField(null);
-    };
-
-    recognition.start();
-    setVoiceActive(true);
-    setVoiceField(field);
-    recognitionRef.current = recognition;
-  };
-
-  const stopVoice = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    setVoiceActive(false);
-    setVoiceField(null);
+  // Combobox with custom input
+  const ComboInput = ({ label, value, options, onChange, placeholder }) => {
+    const [showDropdown, setShowDropdown] = useState(false);
+    const filteredOptions = options.filter(opt => 
+      opt.toLowerCase().includes((value || '').toLowerCase())
+    );
+    
+    return (
+      <div className="space-y-2 relative">
+        <Label className="text-zinc-300">{label}</Label>
+        <Input
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setShowDropdown(true)}
+          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+          placeholder={placeholder}
+          className="h-12 bg-zinc-800 border-zinc-700"
+          data-testid={`input-${label.toLowerCase().replace(/\s/g, '-')}`}
+        />
+        {showDropdown && filteredOptions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-48 overflow-auto">
+            {filteredOptions.map((opt, i) => (
+              <button
+                key={i}
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-zinc-700 text-white"
+                onMouseDown={() => onChange(opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -263,7 +261,7 @@ export default function ObjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pb-20">
+    <div className="min-h-screen bg-zinc-950 text-white pb-24">
       {/* Header */}
       <header className="flex items-center gap-3 p-4 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-40">
         <Button 
@@ -316,91 +314,106 @@ export default function ObjectPage() {
           <CardContent className="space-y-4">
             {/* Name */}
             <div className="space-y-2">
-              <Label className="text-zinc-300">Название *</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={object.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  placeholder="Введите название"
-                  className="flex-1 h-12 bg-zinc-800 border-zinc-700"
-                  list="name-suggestions"
-                  data-testid="object-name-input"
-                />
-                <Button
-                  type="button"
-                  variant={voiceField === 'name' ? 'default' : 'outline'}
-                  size="icon"
-                  className="h-12 w-12 border-zinc-700"
-                  onClick={() => voiceField === 'name' ? stopVoice() : startVoice('name')}
-                  data-testid="voice-name-btn"
-                >
-                  {voiceField === 'name' ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </Button>
-              </div>
-              <datalist id="name-suggestions">
-                {autocomplete.name.map((v, i) => <option key={i} value={v} />)}
-              </datalist>
+              <Label className="text-zinc-300">Наименование *</Label>
+              <Input
+                value={object.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                placeholder="Например: Стол офисный"
+                className="h-12 bg-zinc-800 border-zinc-700"
+                data-testid="object-name-input"
+              />
             </div>
 
-            {/* Category */}
+            {/* Category - with custom input */}
+            <ComboInput
+              label="Категория"
+              value={object.category}
+              options={categories}
+              onChange={(v) => handleChange('category', v)}
+              placeholder="Мебель, Оборудование..."
+            />
+
+            {/* Characteristics */}
             <div className="space-y-2">
-              <Label className="text-zinc-300">Категория</Label>
-              <Select 
-                value={object.category_id} 
-                onValueChange={(v) => handleChange('category_id', v)}
-              >
-                <SelectTrigger className="h-12 bg-zinc-800 border-zinc-700" data-testid="category-select">
-                  <SelectValue placeholder="Выберите категорию" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {categories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id} className="text-white">
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-zinc-300">Характеристики / Описание</Label>
+              <Textarea
+                value={object.characteristics || ''}
+                onChange={(e) => handleChange('characteristics', e.target.value)}
+                placeholder="Размеры, цвет, материал..."
+                className="bg-zinc-800 border-zinc-700 min-h-[80px]"
+                data-testid="characteristics-input"
+              />
             </div>
+
+            {/* Serial Number */}
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Серийный номер</Label>
+              <Input
+                value={object.serial_number || ''}
+                onChange={(e) => handleChange('serial_number', e.target.value)}
+                placeholder="S/N"
+                className="h-12 bg-zinc-800 border-zinc-700"
+              />
+            </div>
+
+            {/* Inventory Number */}
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Инвентарный номер (старый)</Label>
+              <Input
+                value={object.inventory_number || ''}
+                onChange={(e) => handleChange('inventory_number', e.target.value)}
+                placeholder="Предыдущий инв. номер"
+                className="h-12 bg-zinc-800 border-zinc-700"
+              />
+            </div>
+
+            {/* Year */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Год выпуска</Label>
+                <Input
+                  value={object.year || ''}
+                  onChange={(e) => handleChange('year', e.target.value)}
+                  placeholder="2020"
+                  className="h-12 bg-zinc-800 border-zinc-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Количество</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={object.quantity || '1'}
+                  onChange={(e) => handleChange('quantity', e.target.value)}
+                  className="h-12 bg-zinc-800 border-zinc-700"
+                />
+              </div>
+            </div>
+
+            {/* Condition */}
+            <ComboInput
+              label="Техническое состояние"
+              value={object.condition}
+              options={CONDITION_OPTIONS}
+              onChange={(v) => handleChange('condition', v)}
+              placeholder="Исправен, Требует ремонта..."
+            />
 
             {/* Complexity */}
             <div className="space-y-2">
               <Label className="text-zinc-300">Сложность</Label>
-              <Select 
-                value={object.complexity} 
-                onValueChange={(v) => handleChange('complexity', v)}
-              >
-                <SelectTrigger className="h-12 bg-zinc-800 border-zinc-700" data-testid="complexity-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {Object.entries(COMPLEXITY_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k} className="text-white">{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Characteristics */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Характеристики</Label>
               <div className="flex gap-2">
-                <Textarea
-                  value={object.characteristics || ''}
-                  onChange={(e) => handleChange('characteristics', e.target.value)}
-                  placeholder="Описание характеристик"
-                  className="flex-1 bg-zinc-800 border-zinc-700 min-h-[80px]"
-                  data-testid="characteristics-input"
-                />
-                <Button
-                  type="button"
-                  variant={voiceField === 'characteristics' ? 'default' : 'outline'}
-                  size="icon"
-                  className="h-12 w-12 border-zinc-700"
-                  onClick={() => voiceField === 'characteristics' ? stopVoice() : startVoice('characteristics')}
-                  data-testid="voice-characteristics-btn"
-                >
-                  {voiceField === 'characteristics' ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </Button>
+                {COMPLEXITY_OPTIONS.map(opt => (
+                  <Button
+                    key={opt.value}
+                    type="button"
+                    variant={object.complexity === opt.value ? 'default' : 'outline'}
+                    className={object.complexity === opt.value ? '' : 'border-zinc-700 text-zinc-400'}
+                    onClick={() => handleChange('complexity', opt.value)}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
               </div>
             </div>
           </CardContent>
@@ -410,117 +423,115 @@ export default function ObjectPage() {
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
             <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
-              Расположение
+              Местонахождение
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Floor */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Этаж</Label>
-              <Select 
-                value={object.floor || ''} 
-                onValueChange={(v) => handleChange('floor', v)}
-              >
-                <SelectTrigger className="h-12 bg-zinc-800 border-zinc-700" data-testid="floor-select">
-                  <SelectValue placeholder="Выберите этаж" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {references.floor.map(f => (
-                    <SelectItem key={f.id} value={f.name} className="text-white">
-                      {f.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <ComboInput
+                label="Этаж"
+                value={object.floor}
+                options={floors}
+                onChange={(v) => handleChange('floor', v)}
+                placeholder="1, 2, 3..."
+              />
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Кабинет / Комната</Label>
+                <Input
+                  value={object.room || ''}
+                  onChange={(e) => handleChange('room', e.target.value)}
+                  placeholder="101, 205..."
+                  className="h-12 bg-zinc-800 border-zinc-700"
+                />
+              </div>
             </div>
 
-            {/* Department */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Отдел</Label>
-              <Select 
-                value={object.department || ''} 
-                onValueChange={(v) => handleChange('department', v)}
-              >
-                <SelectTrigger className="h-12 bg-zinc-800 border-zinc-700" data-testid="department-select">
-                  <SelectValue placeholder="Выберите отдел" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {references.department.map(d => (
-                    <SelectItem key={d.id} value={d.name} className="text-white">
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ComboInput
+              label="Отдел"
+              value={object.department}
+              options={departments}
+              onChange={(v) => handleChange('department', v)}
+              placeholder="Бухгалтерия, IT..."
+            />
 
-            {/* MOL */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">МОЛ</Label>
-              <Select 
-                value={object.mol_id || ''} 
-                onValueChange={(v) => handleChange('mol_id', v)}
-              >
-                <SelectTrigger className="h-12 bg-zinc-800 border-zinc-700" data-testid="mol-select">
-                  <SelectValue placeholder="Выберите МОЛ" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {references.mol.map(m => (
-                    <SelectItem key={m.id} value={m.id} className="text-white">
-                      {m.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ComboInput
+              label="МОЛ (Материально ответственное лицо)"
+              value={object.mol}
+              options={mols}
+              onChange={(v) => handleChange('mol', v)}
+              placeholder="Иванов И.И."
+            />
+          </CardContent>
+        </Card>
+
+        {/* Notes */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
+              Примечание
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={object.notes || ''}
+              onChange={(e) => handleChange('notes', e.target.value)}
+              placeholder="Дополнительная информация..."
+              className="bg-zinc-800 border-zinc-700 min-h-[60px]"
+            />
           </CardContent>
         </Card>
 
         {/* Photos */}
-        {!isNew && (
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
-                Фото
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                className="border-zinc-700"
-                data-testid="add-photo-btn"
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Добавить
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-            </CardHeader>
-            <CardContent>
-              {object.photos?.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2">
-                  {object.photos.map((url, i) => (
-                    <div key={i} className="aspect-square rounded overflow-hidden bg-zinc-800">
-                      <img 
-                        src={`${process.env.REACT_APP_BACKEND_URL}${url}`} 
-                        alt={`Фото ${i + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-['Barlow_Condensed'] uppercase">
+              Фото
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isNew || uploadingPhoto}
+              className="border-zinc-700"
+              data-testid="add-photo-btn"
+            >
+              {uploadingPhoto ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : (
-                <p className="text-zinc-500 text-center py-4">Нет фото</p>
+                <Camera className="w-4 h-4 mr-2" />
               )}
-            </CardContent>
-          </Card>
-        )}
+              {isNew ? 'Сохраните сначала' : 'Добавить фото'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </CardHeader>
+          <CardContent>
+            {object.photos?.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {object.photos.map((url, i) => (
+                  <div key={i} className="aspect-square rounded overflow-hidden bg-zinc-800 relative group">
+                    <img 
+                      src={`${process.env.REACT_APP_BACKEND_URL}${url}`} 
+                      alt={`Фото ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-zinc-500">
+                <Camera className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">{isNew ? 'Сохраните объект, чтобы добавить фото' : 'Нет фото'}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Audit Log Button */}
         {!isNew && auditLog.length > 0 && (
