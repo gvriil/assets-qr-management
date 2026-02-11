@@ -1478,6 +1478,15 @@ async def get_stats_by_user(user: dict = Depends(require_roles(UserRole.ADMIN)))
 
 # ==================== AUDIT LOG ====================
 
+def clean_mongo_ids(obj):
+    """Recursively remove _id fields from nested dicts"""
+    if isinstance(obj, dict):
+        return {k: clean_mongo_ids(v) for k, v in obj.items() if k != "_id"}
+    elif isinstance(obj, list):
+        return [clean_mongo_ids(item) for item in obj]
+    else:
+        return obj
+
 @api_router.get("/audit-log")
 async def get_audit_log(
     object_id: Optional[str] = None,
@@ -1496,7 +1505,8 @@ async def get_audit_log(
     logs = []
     
     async for log in cursor:
-        log_dict = {k: v for k, v in log.items() if k != "_id"}
+        # Recursively clean all _id fields from the log
+        log_dict = clean_mongo_ids(log)
         # Enrich with user name
         u = await db.users.find_one({"id": log_dict.get("user_id")}, {"_id": 0, "name": 1})
         log_dict["user_name"] = u["name"] if u else "Неизвестно"
