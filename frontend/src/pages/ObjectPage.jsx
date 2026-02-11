@@ -53,7 +53,7 @@ export default function ObjectPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { api } = useAuth();
-  const { isOnline, queueAction, cacheObject } = useOffline();
+  const { isOnline, queueAction, cacheObject, getFieldSession, saveFieldSession, clearFieldSession } = useOffline();
   
   const isNew = id === 'new';
   const qrFromUrl = searchParams.get('qr');
@@ -61,19 +61,23 @@ export default function ObjectPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  
+  // Get saved session for new objects
+  const sessionDefaults = isNew ? getFieldSession() : {};
+  
   const [object, setObject] = useState({
     name: '',
-    category: '',
+    category: sessionDefaults.category || '',
     description: '',
     characteristics: '',
     serial_number: '',
     inventory_number: '',
     year: '',
     condition: '',
-    floor: '',
-    room: '',
-    department: '',
-    mol: '',
+    floor: sessionDefaults.floor || '',
+    room: sessionDefaults.room || '',
+    department: sessionDefaults.department || '',
+    mol: sessionDefaults.mol || '',
     quantity: '1',
     complexity: 'S',
     qr_code: qrFromUrl || '',
