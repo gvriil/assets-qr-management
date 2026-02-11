@@ -10,6 +10,40 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from 'sonner';
 import { Loader2, Plus, QrCode, Download, Printer, AlertTriangle, Eye, ExternalLink } from 'lucide-react';
 
+// Combobox component for selecting from references with custom input
+const ComboSelect = ({ label, value, options, onChange, placeholder }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes((value || '').toLowerCase())
+  );
+  
+  return (
+    <div className="space-y-1 relative">
+      <Label className="text-xs">{label}</Label>
+      <Input
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setShowDropdown(true)}
+        onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+        placeholder={placeholder}
+      />
+      {showDropdown && filteredOptions.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {filteredOptions.slice(0, 10).map((opt, i) => (
+            <div
+              key={i}
+              className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+              onMouseDown={() => onChange(opt)}
+            >
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function QRBatchesPage() {
   const { api } = useAuth();
   const [batches, setBatches] = useState([]);
@@ -29,10 +63,45 @@ export default function QRBatchesPage() {
   const [creating, setCreating] = useState(false);
   const [downloading, setDownloading] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  
+  // References from database
+  const [references, setReferences] = useState({
+    oivs: [],
+    floors: [],
+    departments: [],
+    managements: [],
+    mols: []
+  });
 
   useEffect(() => {
     loadBatches();
+    loadReferences();
   }, []);
+  
+  const loadReferences = async () => {
+    try {
+      const res = await api.get('/references');
+      const refs = {
+        oivs: [],
+        floors: [],
+        departments: [],
+        managements: [],
+        mols: []
+      };
+      
+      res.data.forEach(r => {
+        if (r.type === 'oiv') refs.oivs.push(r.name);
+        if (r.type === 'floor') refs.floors.push(r.name);
+        if (r.type === 'department') refs.departments.push(r.name);
+        if (r.type === 'management') refs.managements.push(r.name);
+        if (r.type === 'mol') refs.mols.push(r.name);
+      });
+      
+      setReferences(refs);
+    } catch (e) {
+      console.error('Error loading references:', e);
+    }
+  };
 
   const loadBatches = async () => {
     try {
