@@ -13,23 +13,81 @@ import {
 } from 'lucide-react';
 
 const FIELD_OPTIONS = [
-  { value: 'name', label: 'Наименование', required: true, hint: 'Можно использовать колонку "Описание"' },
+  { value: 'name', label: 'Наименование', required: true },
+  { value: 'description', label: 'Описание (используется как наименование, если пусто)' },
   { value: 'category', label: 'Категория' },
   { value: 'characteristics', label: 'Характеристики' },
-  { value: 'description', label: 'Описание (альтернатива названию)' },
   { value: 'serial_number', label: 'Серийный номер' },
   { value: 'inventory_number', label: 'Инвентарный номер' },
   { value: 'year', label: 'Год выпуска' },
   { value: 'condition', label: 'Состояние' },
+  { value: 'oiv', label: 'ОИВ' },
   { value: 'floor', label: 'Этаж' },
-  { value: 'room', label: 'Кабинет' },
+  { value: 'management', label: 'Управление' },
   { value: 'department', label: 'Отдел' },
-  { value: 'mol', label: 'МОЛ' },
+  { value: 'room', label: 'Место / Помещение' },
+  { value: 'mol', label: 'ФИО (МОЛ)' },
   { value: 'quantity', label: 'Количество' },
-  { value: 'complexity', label: 'Сложность' },
   { value: 'external_id', label: 'Внешний ID' },
   { value: 'notes', label: 'Примечание' },
 ];
+
+// Parse comma-separated description into fields
+const parseDescriptionToFields = (description) => {
+  if (!description) return { name: '', notes: '' };
+  
+  const parts = description.split(',').map(p => p.trim()).filter(p => p);
+  
+  if (parts.length === 0) return { name: '', notes: '' };
+  if (parts.length === 1) return { name: parts[0], notes: '' };
+  
+  // First part is usually the main name/description
+  const name = parts[0];
+  
+  // Try to extract structured data from remaining parts
+  const extracted = {
+    name: name,
+    characteristics: '',
+    notes: ''
+  };
+  
+  const remainingParts = [];
+  
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i];
+    const partLower = part.toLowerCase();
+    
+    // Try to identify what this part is
+    if (partLower.includes('этаж') || /^\d+\s*(эт|этаж)/i.test(part)) {
+      extracted.floor = part.replace(/этаж|эт\.?/gi, '').trim();
+    } else if (partLower.includes('каб') || partLower.includes('комн') || partLower.includes('помещ')) {
+      extracted.room = part.replace(/кабинет|каб\.?|комната|комн\.?|помещение/gi, '').trim();
+    } else if (part.match(/^\d{4}$/)) {
+      // Looks like a year
+      extracted.year = part;
+    } else if (part.match(/^[A-Za-z0-9\-\/]+$/)) {
+      // Looks like serial number
+      if (!extracted.serial_number) {
+        extracted.serial_number = part;
+      } else {
+        remainingParts.push(part);
+      }
+    } else {
+      // Add to characteristics or notes
+      remainingParts.push(part);
+    }
+  }
+  
+  // Remaining parts go to characteristics first, then notes
+  if (remainingParts.length > 0) {
+    extracted.characteristics = remainingParts.slice(0, 3).join(', ');
+    if (remainingParts.length > 3) {
+      extracted.notes = remainingParts.slice(3).join(', ');
+    }
+  }
+  
+  return extracted;
+};
 
 // Validation functions for preview
 const validateRow = (row, mapping) => {
