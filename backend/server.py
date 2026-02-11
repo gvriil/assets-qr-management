@@ -984,18 +984,46 @@ async def preview_import(
     
     try:
         if file.filename.endswith('.csv'):
-            df = pd.read_csv(BytesIO(content), encoding='utf-8')
+            # Try to detect header row - read first 10 rows as raw
+            df_raw = pd.read_csv(BytesIO(content), header=None, encoding='utf-8', nrows=10)
+            
+            # Find header row (first row with multiple non-null values)
+            header_row = 0
+            for idx in range(len(df_raw)):
+                non_null_count = df_raw.iloc[idx].notna().sum()
+                # Check if row looks like headers (multiple non-null values, not just numbers)
+                if non_null_count >= 2:
+                    row_values = [str(v) for v in df_raw.iloc[idx].dropna().values]
+                    # Skip rows that look like data (have numbers or specific patterns)
+                    if any('Приложение' in v or 'Перечень' in v for v in row_values):
+                        continue
+                    # Check if it looks like headers
+                    if any(v in ['№', 'Описание', 'Наименование', 'Количество', 'Кол-во', 'Категория'] or 
+                           'описан' in v.lower() or 'наимен' in v.lower() or 'характер' in v.lower() 
+                           for v in row_values):
+                        header_row = idx
+                        break
+            
+            # Re-read with correct header
+            df = pd.read_csv(BytesIO(content), header=header_row, encoding='utf-8')
+            
+            # Clean column names - remove leading/trailing spaces
+            df.columns = [str(c).strip() if pd.notna(c) else f'col_{i}' for i, c in enumerate(df.columns)]
+            
         else:
             df = pd.read_excel(BytesIO(content))
+        
+        # Drop completely empty rows
+        df = df.dropna(how='all')
         
         # Replace NaN with None for JSON serialization
         df = df.where(pd.notnull(df), None)
         
         columns = df.columns.tolist()
-        # Convert preview to serializable format - use requested preview_rows
+        # Convert preview to serializable format
         preview = []
         for _, row in df.head(preview_rows).iterrows():
-            preview.append({col: (str(val) if val is not None else "") for col, val in row.items()})
+            preview.append({col: (str(val).strip() if val is not None else "") for col, val in row.items()})
         
         total_rows = len(df)
         
