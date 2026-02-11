@@ -960,24 +960,27 @@ async def get_batch_pdf(batch_id: str, user: dict = Depends(get_current_user)):
         c.drawImage(str(qr_path), x + 2*mm, y + 2*mm, width=25*mm, height=25*mm)
         
         # Code text
-        c.setFont(CYRILLIC_FONT_BOLD, 8)
-        c.drawString(x + 30*mm, y + 22*mm, code["qr_code"])
-        c.setFont(CYRILLIC_FONT, 5)
-        c.drawString(x + 30*mm, y + 16*mm, f"ID: {code['id'][:8]}")
+        c.setFont(CYRILLIC_FONT_BOLD, 7)
+        c.drawString(x + 30*mm, y + 26*mm, code["qr_code"])
+        c.setFont(CYRILLIC_FONT, 4)
+        c.drawString(x + 30*mm, y + 22*mm, f"ID: {code['id'][:8]}")
         
         # Label text (ОИВ - ЭТАЖ - УПРАВЛЕНИЕ - ОТДЕЛ - МЕСТО - ФИО)
         code_label = code.get("label_text") or label_text
         if code_label:
-            c.setFont(CYRILLIC_FONT, 5)
-            # Split long label into multiple lines if needed
-            max_chars = 35
-            if len(code_label) > max_chars:
-                line1 = code_label[:max_chars]
-                line2 = code_label[max_chars:max_chars*2]
-                c.drawString(x + 30*mm, y + 10*mm, line1)
-                c.drawString(x + 30*mm, y + 6*mm, line2)
-            else:
-                c.drawString(x + 30*mm, y + 10*mm, code_label)
+            c.setFont(CYRILLIC_FONT, 4)
+            # Split label into multiple lines (50 chars per line, up to 4 lines)
+            max_chars = 50
+            lines = []
+            remaining = code_label
+            while remaining and len(lines) < 4:
+                lines.append(remaining[:max_chars])
+                remaining = remaining[max_chars:]
+            
+            y_offset = 18*mm
+            for line in lines:
+                c.drawString(x + 30*mm, y + y_offset, line)
+                y_offset -= 4*mm
     
     c.save()
     
