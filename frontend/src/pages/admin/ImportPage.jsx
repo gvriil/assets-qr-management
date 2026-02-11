@@ -308,7 +308,7 @@ export default function ImportPage() {
       }
       
       const errors = validateRow(processedRow, mapping);
-      const transformed = transformRow(processedRow, mapping);
+      const transformed = transformRow(processedRow, mapping, parseCommas);
       
       validated.push({
         original: processedRow,
