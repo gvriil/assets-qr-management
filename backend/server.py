@@ -1006,12 +1006,16 @@ async def execute_import(
                 elif last_category:
                     obj_data['category'] = last_category
             
+            # Use description as name fallback
+            if not obj_data.get("name") and obj_data.get("description"):
+                obj_data["name"] = obj_data["description"]
+            
             # Skip empty rows if enabled
             if skip_empty_rows and not obj_data.get("name"):
                 continue
             
             if not obj_data.get("name"):
-                errors.append(f"Строка {idx + 2}: отсутствует наименование")
+                errors.append(f"Строка {idx + 2}: отсутствует наименование или описание")
                 continue
             
             # Check if exists by external_id
