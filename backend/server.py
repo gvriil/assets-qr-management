@@ -338,27 +338,9 @@ async def compress_image(file_data: bytes, max_size: int = 1200, quality: int = 
 
 # ==================== AUTH ROUTES ====================
 
-# Default admin credentials
-DEFAULT_ADMIN_EMAIL = "admin@inventory.system"
-DEFAULT_ADMIN_PASSWORD = "admin123"
-
 @api_router.on_event("startup")
-async def create_default_admin():
-    """Create default admin user on startup if not exists"""
-    existing = await db.users.find_one({"email": DEFAULT_ADMIN_EMAIL})
-    if not existing:
-        admin_doc = {
-            "id": str(uuid.uuid4()),
-            "email": DEFAULT_ADMIN_EMAIL,
-            "password": hash_password(DEFAULT_ADMIN_PASSWORD),
-            "name": "Администратор",
-            "role": UserRole.ADMIN,
-            "is_active": True,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.users.insert_one(admin_doc)
-        logger.info(f"Default admin created: {DEFAULT_ADMIN_EMAIL}")
-    
+async def create_default_data():
+    """Create default data on startup if not exists"""
     # Create default rates if not exist
     existing_rates = await db.rates.count_documents({})
     if existing_rates == 0:
