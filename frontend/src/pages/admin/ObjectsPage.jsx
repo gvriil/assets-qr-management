@@ -4,10 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { toast } from 'sonner';
-import { Loader2, Search, Filter, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Search, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const STATUS_LABELS = {
   new: 'Новый',
