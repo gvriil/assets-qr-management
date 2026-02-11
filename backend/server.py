@@ -1305,7 +1305,7 @@ async def export_catalog(
                                 str(photo_path),
                                 {'x_scale': 0.3, 'y_scale': 0.3, 'x_offset': 5, 'y_offset': 5}
                             )
-                        except:
+                        except Exception:
                             worksheet.write(row_idx, 14, '[Ошибка фото]', cell_format)
                     else:
                         worksheet.write(row_idx, 14, '[Нет файла]', cell_format)
