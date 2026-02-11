@@ -233,8 +233,8 @@ export default function ImportPage() {
   };
 
   const handleImport = async () => {
-    if (!mapping.name) {
-      toast.error('Укажите колонку для наименования');
+    if (!mapping.name && !mapping.description) {
+      toast.error('Укажите колонку для наименования или описания');
       return;
     }
 
