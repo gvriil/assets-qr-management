@@ -199,6 +199,7 @@ class ReferenceCreate(BaseModel):
     type: str  # floor, department, mol
 
 class RateCreate(BaseModel):
+    name: Optional[str] = None
     complexity: str
     rate: float
     time_norm_minutes: int
@@ -798,6 +799,7 @@ async def create_rate(rate: RateCreate, user: dict = Depends(require_roles(UserR
     rate_id = str(uuid.uuid4())
     rate_doc = {
         "id": rate_id,
+        "name": rate.name,
         "complexity": rate.complexity,
         "rate": rate.rate,
         "time_norm_minutes": rate.time_norm_minutes,
@@ -815,7 +817,7 @@ async def list_rates(user: dict = Depends(get_current_user)):
 async def update_rate(rate_id: str, data: RateCreate, user: dict = Depends(require_roles(UserRole.ADMIN))):
     result = await db.rates.update_one(
         {"id": rate_id},
-        {"$set": {"complexity": data.complexity, "rate": data.rate, "time_norm_minutes": data.time_norm_minutes}}
+        {"$set": {"name": data.name, "complexity": data.complexity, "rate": data.rate, "time_norm_minutes": data.time_norm_minutes}}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Тариф не найден")
