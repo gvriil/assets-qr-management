@@ -1081,6 +1081,255 @@ async def export_objects(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+@api_router.get("/export/catalog")
+async def export_catalog(
+    format: str = "pdf",  # pdf or xlsx
+    page_size: str = "A4",  # A4 or A3
+    include_photos: bool = True,
+    status: Optional[str] = None,
+    user: dict = Depends(get_current_user)
+):
+    """Generate printable catalog with photos"""
+    import pandas as pd
+    from reportlab.lib.pagesizes import A4, A3, landscape
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import xlsxwriter
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    objects = await db.objects.find(query, {"_id": 0}).sort("name", 1).to_list(100000)
+    
+    if not objects:
+        raise HTTPException(status_code=404, detail="Нет объектов для экспорта")
+    
+    buffer = BytesIO()
+    
+    if format == "pdf":
+        # PDF Catalog Generation
+        page = A3 if page_size == "A3" else A4
+        
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=page,
+            rightMargin=15*mm,
+            leftMargin=15*mm,
+            topMargin=15*mm,
+            bottomMargin=15*mm
+        )
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=14,
+            spaceAfter=6
+        )
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=9,
+            leading=11
+        )
+        small_style = ParagraphStyle(
+            'CustomSmall',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.grey
+        )
+        
+        elements = []
+        
+        # Title
+        elements.append(Paragraph("КАТАЛОГ ИНВЕНТАРИЗАЦИИ", styles['Title']))
+        elements.append(Paragraph(f"Дата формирования: {datetime.now().strftime('%d.%m.%Y %H:%M')}", small_style))
+        elements.append(Paragraph(f"Всего объектов: {len(objects)}", small_style))
+        elements.append(Spacer(1, 10*mm))
+        
+        # Items per page based on size and photo inclusion
+        if page_size == "A3":
+            cols = 3 if include_photos else 4
+        else:
+            cols = 2 if include_photos else 3
+        
+        for idx, obj in enumerate(objects):
+            # Object card
+            card_data = []
+            
+            # Header with QR and name
+            card_data.append([
+                Paragraph(f"<b>{obj.get('qr_code', 'N/A')}</b>", normal_style),
+                Paragraph(f"<b>{obj.get('name', 'Без названия')[:50]}</b>", title_style)
+            ])
+            
+            # Details
+            details = []
+            if obj.get('category'):
+                details.append(f"Категория: {obj['category']}")
+            if obj.get('characteristics'):
+                chars = obj['characteristics'][:100] + ('...' if len(obj.get('characteristics', '')) > 100 else '')
+                details.append(f"Характеристики: {chars}")
+            if obj.get('inventory_number'):
+                details.append(f"Инв. №: {obj['inventory_number']}")
+            if obj.get('serial_number'):
+                details.append(f"Серийный №: {obj['serial_number']}")
+            
+            location = []
+            if obj.get('floor'):
+                location.append(f"Этаж {obj['floor']}")
+            if obj.get('room'):
+                location.append(f"Каб. {obj['room']}")
+            if obj.get('department'):
+                location.append(obj['department'])
+            if location:
+                details.append(f"Расположение: {', '.join(location)}")
+            
+            if obj.get('mol'):
+                details.append(f"МОЛ: {obj['mol']}")
+            if obj.get('condition'):
+                details.append(f"Состояние: {obj['condition']}")
+            if obj.get('quantity') and obj['quantity'] != '1':
+                details.append(f"Кол-во: {obj['quantity']}")
+            
+            card_data.append([Paragraph('<br/>'.join(details), normal_style)])
+            
+            # Photo
+            if include_photos and obj.get('photos') and len(obj['photos']) > 0:
+                photo_path = PHOTOS_DIR / obj['photos'][0].split('/')[-1]
+                if photo_path.exists():
+                    try:
+                        img = RLImage(str(photo_path), width=40*mm, height=40*mm)
+                        card_data.append([img])
+                    except:
+                        card_data.append([Paragraph("[Фото недоступно]", small_style)])
+                else:
+                    card_data.append([Paragraph("[Фото не найдено]", small_style)])
+            
+            # Build card table
+            card_table = Table(card_data, colWidths=[80*mm] if page_size == "A4" else [100*mm])
+            card_table.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 1, colors.lightgrey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.95, 0.95, 0.95)),
+                ('PADDING', (0, 0), (-1, -1), 5),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            
+            elements.append(card_table)
+            elements.append(Spacer(1, 5*mm))
+            
+            # Page break every N items
+            items_per_page = 6 if include_photos else 10
+            if page_size == "A3":
+                items_per_page = 9 if include_photos else 15
+            
+            if (idx + 1) % items_per_page == 0 and idx < len(objects) - 1:
+                from reportlab.platypus import PageBreak
+                elements.append(PageBreak())
+        
+        doc.build(elements)
+        media_type = "application/pdf"
+        filename = f"catalog_{page_size}.pdf"
+        
+    else:
+        # Excel with embedded photos
+        workbook = xlsxwriter.Workbook(buffer, {'in_memory': True})
+        worksheet = workbook.add_worksheet('Каталог')
+        
+        # Formats
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#1e3a5f',
+            'font_color': 'white',
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter'
+        })
+        cell_format = workbook.add_format({
+            'border': 1,
+            'align': 'left',
+            'valign': 'top',
+            'text_wrap': True
+        })
+        
+        # Headers
+        headers = ['№', 'QR-код', 'Наименование', 'Категория', 'Характеристики', 
+                   'Инв. номер', 'Серийный номер', 'Этаж', 'Кабинет', 'Отдел', 
+                   'МОЛ', 'Состояние', 'Кол-во', 'Статус']
+        if include_photos:
+            headers.append('Фото')
+        
+        for col, header in enumerate(headers):
+            worksheet.write(0, col, header, header_format)
+        
+        # Column widths
+        worksheet.set_column('A:A', 5)
+        worksheet.set_column('B:B', 15)
+        worksheet.set_column('C:C', 30)
+        worksheet.set_column('D:E', 20)
+        worksheet.set_column('F:G', 15)
+        worksheet.set_column('H:I', 8)
+        worksheet.set_column('J:K', 15)
+        worksheet.set_column('L:L', 12)
+        worksheet.set_column('M:N', 8)
+        if include_photos:
+            worksheet.set_column('O:O', 20)
+        
+        # Data rows
+        row_height = 80 if include_photos else 20
+        
+        for row_idx, obj in enumerate(objects, start=1):
+            worksheet.set_row(row_idx, row_height)
+            
+            worksheet.write(row_idx, 0, row_idx, cell_format)
+            worksheet.write(row_idx, 1, obj.get('qr_code', ''), cell_format)
+            worksheet.write(row_idx, 2, obj.get('name', ''), cell_format)
+            worksheet.write(row_idx, 3, obj.get('category', ''), cell_format)
+            worksheet.write(row_idx, 4, obj.get('characteristics', ''), cell_format)
+            worksheet.write(row_idx, 5, obj.get('inventory_number', ''), cell_format)
+            worksheet.write(row_idx, 6, obj.get('serial_number', ''), cell_format)
+            worksheet.write(row_idx, 7, obj.get('floor', ''), cell_format)
+            worksheet.write(row_idx, 8, obj.get('room', ''), cell_format)
+            worksheet.write(row_idx, 9, obj.get('department', ''), cell_format)
+            worksheet.write(row_idx, 10, obj.get('mol', ''), cell_format)
+            worksheet.write(row_idx, 11, obj.get('condition', ''), cell_format)
+            worksheet.write(row_idx, 12, obj.get('quantity', '1'), cell_format)
+            worksheet.write(row_idx, 13, obj.get('status', ''), cell_format)
+            
+            # Insert photo
+            if include_photos:
+                if obj.get('photos') and len(obj['photos']) > 0:
+                    photo_path = PHOTOS_DIR / obj['photos'][0].split('/')[-1]
+                    if photo_path.exists():
+                        try:
+                            worksheet.insert_image(
+                                row_idx, 14,
+                                str(photo_path),
+                                {'x_scale': 0.3, 'y_scale': 0.3, 'x_offset': 5, 'y_offset': 5}
+                            )
+                        except:
+                            worksheet.write(row_idx, 14, '[Ошибка фото]', cell_format)
+                    else:
+                        worksheet.write(row_idx, 14, '[Нет файла]', cell_format)
+                else:
+                    worksheet.write(row_idx, 14, '', cell_format)
+        
+        workbook.close()
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"catalog_{page_size}.xlsx"
+    
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 # ==================== STATS & DASHBOARD ====================
 
 @api_router.get("/stats/overview")
