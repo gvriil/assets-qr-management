@@ -41,7 +41,12 @@ export default function LoginPage() {
       const res = await login(email, password);
       if (res.requires_2fa) {
         setStep('2fa');
-        toast.success('Код подтверждения отправлен');
+        // MVP: показываем код в toast (убрать в production!)
+        if (res.dev_code) {
+          toast.success(`Ваш код: ${res.dev_code}`, { duration: 30000 });
+        } else {
+          toast.success('Код подтверждения отправлен');
+        }
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail;
