@@ -127,16 +127,22 @@ export default function ObjectPage() {
       const floorsArr = [];
       const deptsArr = [];
       const molsArr = [];
+      const managementsArr = [];
+      const oivsArr = [];
       
       refsRes.data.forEach(r => {
         if (r.type === 'floor') floorsArr.push(r.name);
         if (r.type === 'department') deptsArr.push(r.name);
         if (r.type === 'mol') molsArr.push(r.name);
+        if (r.type === 'management') managementsArr.push(r.name);
+        if (r.type === 'oiv') oivsArr.push(r.name);
       });
       
       setFloors(floorsArr);
       setDepartments(deptsArr);
       setMols(molsArr);
+      setManagements(managementsArr);
+      setOivs(oivsArr);
     } catch (e) {
       console.error('Error loading references:', e);
     }
