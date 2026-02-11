@@ -77,6 +77,8 @@ export default function ObjectPage() {
   const [categories, setCategories] = useState([]);
   const [floors, setFloors] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [managements, setManagements] = useState([]);
+  const [oivs, setOivs] = useState([]);
   const [mols, setMols] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
