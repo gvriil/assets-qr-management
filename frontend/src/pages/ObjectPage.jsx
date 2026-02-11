@@ -157,6 +157,15 @@ export default function ObjectPage() {
 
     setSaving(true);
     try {
+      // Save session fields for next object
+      saveFieldSession({
+        floor: object.floor,
+        department: object.department,
+        mol: object.mol,
+        category: object.category,
+        room: object.room
+      });
+      
       if (isOnline) {
         if (isNew) {
           const res = await api.post('/objects', object);
