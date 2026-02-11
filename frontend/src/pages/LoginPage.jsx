@@ -38,14 +38,20 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await login(email, password);
+      // Check if 2FA is required (backward compatibility) or direct login
       if (res.requires_2fa) {
         setStep('2fa');
-        // MVP: показываем код в toast (убрать в production!)
         if (res.dev_code) {
           toast.success(`Ваш код: ${res.dev_code}`, { duration: 30000 });
         } else {
           toast.success('Код подтверждения отправлен');
         }
+      } else if (res.access_token) {
+        // Direct login without 2FA
+        const { access_token, user: userData } = res;
+        localStorage.setItem('token', access_token);
+        toast.success(`Добро пожаловать, ${userData.name}!`);
+        window.location.href = userData.role === 'admin' || userData.role === 'auditor' ? '/admin' : '/scanner';
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail;
