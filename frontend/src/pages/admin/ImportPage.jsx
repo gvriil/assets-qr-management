@@ -160,7 +160,17 @@ export default function ImportPage() {
   };
 
   const handleMappingChange = (field, column) => {
-    setMapping(prev => ({ ...prev, [field]: column }));
+    console.log('Mapping change:', field, '->', column);
+    if (column === '') {
+      // Remove mapping when "Not used" selected
+      setMapping(prev => {
+        const newMapping = { ...prev };
+        delete newMapping[field];
+        return newMapping;
+      });
+    } else {
+      setMapping(prev => ({ ...prev, [field]: column }));
+    }
   };
 
   const handlePreviewValidation = () => {
