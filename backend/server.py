@@ -293,8 +293,92 @@ async def compress_image(file_data: bytes, max_size: int = 1200, quality: int = 
 
 # ==================== AUTH ROUTES ====================
 
+# Default admin credentials
+DEFAULT_ADMIN_EMAIL = "admin@inventory.local"
+DEFAULT_ADMIN_PASSWORD = "admin123"
+
+@api_router.on_event("startup")
+async def create_default_admin():
+    """Create default admin user on startup if not exists"""
+    existing = await db.users.find_one({"email": DEFAULT_ADMIN_EMAIL})
+    if not existing:
+        admin_doc = {
+            "id": str(uuid.uuid4()),
+            "email": DEFAULT_ADMIN_EMAIL,
+            "password": hash_password(DEFAULT_ADMIN_PASSWORD),
+            "name": "Администратор",
+            "role": UserRole.ADMIN,
+            "is_active": True,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(admin_doc)
+        logger.info(f"Default admin created: {DEFAULT_ADMIN_EMAIL}")
+    
+    # Create default rates if not exist
+    existing_rates = await db.rates.count_documents({})
+    if existing_rates == 0:
+        default_rates = [
+            {"id": str(uuid.uuid4()), "complexity": "S", "rate": 50, "time_norm_minutes": 3, "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "complexity": "M", "rate": 100, "time_norm_minutes": 7, "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "complexity": "L", "rate": 200, "time_norm_minutes": 15, "created_at": datetime.now(timezone.utc).isoformat()},
+        ]
+        await db.rates.insert_many(default_rates)
+        logger.info("Default rates created")
+
 @api_router.post("/auth/register", response_model=UserResponse)
 async def register(user: UserCreate):
+    # Validate invite code
+    invite = await db.invite_codes.find_one({
+        "code": user.invite_code.upper(),
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not invite:
+        raise HTTPException(status_code=400, detail="Неверный или недействительный инвайт-код")
+    
+    # Check expiration
+    if datetime.fromisoformat(invite["expires_at"]) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Инвайт-код истёк")
+    
+    # Check max uses
+    if invite["used_count"] >= invite["max_uses"]:
+        raise HTTPException(status_code=400, detail="Инвайт-код уже использован максимальное число раз")
+    
+    existing = await db.users.find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email уже зарегистрирован")
+    
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": user.email,
+        "password": hash_password(user.password),
+        "name": user.name,
+        "role": invite["role"],  # Role from invite code
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "invited_by": invite["created_by"]
+    }
+    await db.users.insert_one(user_doc)
+    
+    # Update invite code usage
+    await db.invite_codes.update_one(
+        {"code": user.invite_code.upper()},
+        {"$inc": {"used_count": 1}}
+    )
+    
+    return UserResponse(
+        id=user_id,
+        email=user.email,
+        name=user.name,
+        role=invite["role"],
+        created_at=user_doc["created_at"],
+        is_active=True
+    )
+
+@api_router.post("/auth/register-by-admin", response_model=UserResponse)
+async def register_by_admin(user: UserCreateByAdmin, admin: dict = Depends(require_roles(UserRole.ADMIN))):
+    """Admin can create users without invite code"""
     existing = await db.users.find_one({"email": user.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email уже зарегистрирован")
@@ -307,6 +391,19 @@ async def register(user: UserCreate):
         "name": user.name,
         "role": user.role,
         "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by_admin": admin["id"]
+    }
+    await db.users.insert_one(user_doc)
+    
+    return UserResponse(
+        id=user_id,
+        email=user.email,
+        name=user.name,
+        role=user.role,
+        created_at=user_doc["created_at"],
+        is_active=True
+    )
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user_doc)
