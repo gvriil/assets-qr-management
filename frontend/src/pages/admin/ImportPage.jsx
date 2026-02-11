@@ -181,6 +181,9 @@ export default function ImportPage() {
   };
 
   const handlePreviewValidation = () => {
+    console.log('Current mapping before validation:', mapping);
+    console.log('mapping.name:', mapping.name);
+    
     if (!mapping.name) {
       toast.error('Укажите колонку для наименования');
       return;
