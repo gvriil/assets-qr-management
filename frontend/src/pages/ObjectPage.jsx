@@ -465,7 +465,7 @@ export default function ObjectPage() {
                   type="number"
                   value={object.year || ''}
                   onChange={(e) => handleChange('year', e.target.value)}
-                  className="bg-zinc-900 border-zinc-700"
+                  className="bg-zinc-900 border-zinc-700 text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -475,13 +475,13 @@ export default function ObjectPage() {
                   min={1}
                   value={object.quantity || '1'}
                   onChange={(e) => handleChange('quantity', e.target.value)}
-                  className="bg-zinc-900 border-zinc-700"
+                  className="bg-zinc-900 border-zinc-700 text-white"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-zinc-300">Сложность</Label>
                 <select
-                  className="w-full h-10 px-3 rounded-md border border-zinc-700 bg-zinc-900 text-sm"
+                  className="w-full h-10 px-3 rounded-md border border-zinc-700 bg-zinc-900 text-white text-sm"
                   value={object.complexity}
                   onChange={(e) => handleChange('complexity', e.target.value)}
                 >
