@@ -351,24 +351,46 @@ export default function QRBatchesPage() {
                     {new Date(batch.created_at).toLocaleDateString('ru-RU')}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDownloadPDF(batch.id, batch.name)}
+                        onClick={() => handleDownloadPDF(batch.id, batch.name, 'preview')}
                         disabled={downloading === batch.id}
-                        data-testid={`download-pdf-${batch.id}`}
+                        title="Просмотр"
+                        data-testid={`preview-pdf-${batch.id}`}
                       >
                         {downloading === batch.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          <Download className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadPDF(batch.id, batch.name, 'download')}
+                        disabled={downloading === batch.id}
+                        title="Скачать"
+                        data-testid={`download-pdf-${batch.id}`}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadPDF(batch.id, batch.name, 'print')}
+                        disabled={downloading === batch.id}
+                        title="Печать"
+                        data-testid={`print-pdf-${batch.id}`}
+                      >
+                        <Printer className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleMarkSpoiled(batch.id)}
+                        title="Испорчено"
                         data-testid={`spoil-${batch.id}`}
                       >
                         <AlertTriangle className="w-4 h-4 text-amber-500" />
