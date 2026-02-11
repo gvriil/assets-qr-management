@@ -961,26 +961,35 @@ async def get_batch_pdf(batch_id: str, user: dict = Depends(get_current_user)):
         
         # Code text
         c.setFont(CYRILLIC_FONT_BOLD, 7)
-        c.drawString(x + 30*mm, y + 26*mm, code["qr_code"])
+        c.drawString(x + 30*mm, y + 28*mm, code["qr_code"])
         c.setFont(CYRILLIC_FONT, 4)
-        c.drawString(x + 30*mm, y + 22*mm, f"ID: {code['id'][:8]}")
+        c.drawString(x + 30*mm, y + 24*mm, f"ID: {code['id'][:8]}")
         
         # Label text (ОИВ - ЭТАЖ - УПРАВЛЕНИЕ - ОТДЕЛ - МЕСТО - ФИО)
         code_label = code.get("label_text") or label_text
         if code_label:
             c.setFont(CYRILLIC_FONT, 4)
-            # Split label into multiple lines (50 chars per line, up to 4 lines)
-            max_chars = 50
+            # Split label by " - " separator and wrap intelligently
+            max_width = 55  # chars per line
+            words = code_label.split(' ')
             lines = []
-            remaining = code_label
-            while remaining and len(lines) < 4:
-                lines.append(remaining[:max_chars])
-                remaining = remaining[max_chars:]
+            current_line = ""
             
-            y_offset = 18*mm
-            for line in lines:
+            for word in words:
+                if len(current_line) + len(word) + 1 <= max_width:
+                    current_line = current_line + " " + word if current_line else word
+                else:
+                    if current_line:
+                        lines.append(current_line)
+                    current_line = word
+            if current_line:
+                lines.append(current_line)
+            
+            # Draw up to 5 lines
+            y_offset = 20*mm
+            for i, line in enumerate(lines[:5]):
                 c.drawString(x + 30*mm, y + y_offset, line)
-                y_offset -= 4*mm
+                y_offset -= 3.5*mm
     
     c.save()
     
