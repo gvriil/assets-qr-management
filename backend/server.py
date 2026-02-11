@@ -20,10 +20,23 @@ from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from PIL import Image
 import aiofiles
 import json
 import re
+
+# Register Cyrillic-capable fonts
+try:
+    pdfmetrics.registerFont(TTFont('DejaVu', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+    pdfmetrics.registerFont(TTFont('DejaVu-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+    CYRILLIC_FONT = 'DejaVu'
+    CYRILLIC_FONT_BOLD = 'DejaVu-Bold'
+except Exception as e:
+    logging.warning(f"Could not load DejaVu fonts: {e}, falling back to Helvetica")
+    CYRILLIC_FONT = 'Helvetica'
+    CYRILLIC_FONT_BOLD = 'Helvetica-Bold'
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
