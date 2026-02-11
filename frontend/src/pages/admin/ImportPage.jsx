@@ -132,7 +132,12 @@ export default function ImportPage() {
         } else if (colLower.includes('катег') || colLower === 'category') {
           autoMapping['category'] = col;
         } else if (colLower.includes('характер') || colLower.includes('описан') || colLower === 'description') {
+          // Map "Описание (характеристики)" as name fallback
           autoMapping['characteristics'] = col;
+          // Also set as description for fallback to name
+          if (!autoMapping['name']) {
+            autoMapping['description'] = col;
+          }
         } else if (colLower.includes('серийн') || colLower.includes('s/n') || colLower === 'serial') {
           autoMapping['serial_number'] = col;
         } else if (colLower.includes('инвентар') || colLower === 'inventory') {
@@ -149,11 +154,11 @@ export default function ImportPage() {
           autoMapping['department'] = col;
         } else if (colLower.includes('мол') || colLower.includes('ответств')) {
           autoMapping['mol'] = col;
-        } else if (colLower.includes('колич') || colLower.includes('кол-во') || colLower === 'quantity') {
+        } else if (colLower.includes('колич') || colLower.includes('кол-во') || colLower.includes('общее кол') || colLower === 'quantity') {
           autoMapping['quantity'] = col;
         } else if (colLower.includes('примеч') || colLower === 'notes') {
           autoMapping['notes'] = col;
-        } else if (colLower.includes('внешн') || colLower.includes('external') || colLower === 'id') {
+        } else if (colLower.includes('внешн') || colLower.includes('external') || colLower === 'id' || colLower === '№') {
           autoMapping['external_id'] = col;
         }
       });
