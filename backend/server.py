@@ -404,18 +404,6 @@ async def register_by_admin(user: UserCreateByAdmin, admin: dict = Depends(requi
         created_at=user_doc["created_at"],
         is_active=True
     )
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.users.insert_one(user_doc)
-    
-    return UserResponse(
-        id=user_id,
-        email=user.email,
-        name=user.name,
-        role=user.role,
-        created_at=user_doc["created_at"],
-        is_active=True
-    )
 
 @api_router.post("/auth/login")
 async def login(credentials: UserLogin):
