@@ -77,10 +77,11 @@ export default function ObjectsPage() {
       if (filters.search) params.append('search', filters.search);
       if (filters.status) params.append('status', filters.status);
       if (filters.category_id) params.append('category_id', filters.category_id);
+      if (filters.sort) params.append('sort', filters.sort);
 
       const [objectsRes, countRes] = await Promise.all([
         api.get(`/objects?${params.toString()}`),
-        api.get(`/objects/count?${filters.status ? `status=${filters.status}` : ''}`)
+        api.get(`/objects/count?${filters.status ? `status=${filters.status}` : ''}${filters.category_id ? `&category_id=${filters.category_id}` : ''}`)
       ]);
 
       setObjects(objectsRes.data);
