@@ -71,6 +71,12 @@ const transformRow = (row, mapping) => {
       result[opt.value] = String(row[sourceCol]).trim();
     }
   });
+  
+  // Use description as name fallback
+  if (!result.name && result.description) {
+    result.name = result.description;
+  }
+  
   return result;
 };
 
