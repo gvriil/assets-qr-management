@@ -1,0 +1,139 @@
+{
+  "project_name": "Field Inventory System MVP",
+  "design_philosophy": {
+    "archetype": "The Performance Pro (Industrial Minimalist)",
+    "core_values": [
+      "Tactical Precision",
+      "High Contrast Visibility",
+      "Data Density",
+      "Offline Reliability"
+    ],
+    "aesthetic": "Industrial tools (think DeWalt/Hilti digital interfaces), flat surfaces, visible borders, monospace data."
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Barlow Condensed, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl font-bold tracking-tight uppercase",
+      "h2": "text-2xl font-semibold tracking-tight uppercase",
+      "h3": "text-xl font-medium tracking-normal",
+      "body": "text-base font-normal leading-relaxed",
+      "small": "text-sm font-medium text-muted-foreground",
+      "mono_code": "font-mono text-sm tracking-wide"
+    },
+    "instructions": "Import 'Barlow Condensed' and 'JetBrains Mono' from Google Fonts. Use Barlow Condensed for all page titles and major section headers. Use JetBrains Mono for Object IDs, QR Codes, and numerical data tables."
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#007AFF",
+        "foreground": "#FFFFFF",
+        "description": "Electric Blue - Use for primary actions (Save, Scan, Submit)"
+      },
+      "background": {
+        "light": "#FFFFFF",
+        "dark": "#09090B",
+        "description": "Zinc 950 for Dark Mode (Deep Industrial)"
+      },
+      "surface": {
+        "light": "#F4F4F5",
+        "dark": "#18181B",
+        "description": "Zinc 900 for Cards/Panels"
+      },
+      "border": {
+        "light": "#E4E4E7",
+        "dark": "#27272A",
+        "description": "Zinc 800 - High visibility borders are key to the industrial look"
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#3B82F6"
+      }
+    },
+    "usage_rules": [
+      "NO GRADIENTS for backgrounds. Flat, solid colors only.",
+      "Dark mode is the default for the PWA (Field Worker).",
+      "Light mode is the default for the Admin Dashboard.",
+      "Use 'Zinc' scale from Tailwind for all neutrals."
+    ]
+  },
+  "layout": {
+    "spacing_system": "Generous padding (p-4 to p-8) for touch targets on mobile. Dense (p-2 to p-4) for admin tables.",
+    "grid_system": {
+      "mobile": "grid-cols-1 gap-4",
+      "desktop": "grid-cols-12 gap-6",
+      "bento_dashboard": "Use 'Bento' grid for the Admin Dashboard overview (See Spacing Strategy in System Prompt)."
+    },
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+  },
+  "components": {
+    "buttons": {
+      "style": "Sharp corners (rounded-sm) or slightly rounded (rounded-md). NO PILL SHAPES.",
+      "variants": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
+        "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        "outline": "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        "ghost": "hover:bg-accent hover:text-accent-foreground"
+      }
+    },
+    "cards": {
+      "style": "Flat background, 1px solid border (Zinc-800 in dark), NO SHADOW in dark mode. Small shadow-sm in light mode.",
+      "padding": "p-6"
+    },
+    "inputs": {
+      "style": "h-12 (mobile) / h-10 (desktop). Background-muted. Border-input. Focus: ring-2 ring-primary ring-offset-2."
+    },
+    "scanner_overlay": {
+      "description": "A transparent overlay with a scanning frame.",
+      "style": "fixed inset-0 z-50 bg-black/50 flex items-center justify-center. Frame: border-2 border-primary w-64 h-64 rounded-lg relative. Add 'corner' accents."
+    },
+    "status_badge": {
+      "style": "inline-flex items-center rounded-sm px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "variants": {
+        "online": "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+        "offline": "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20"
+      }
+    }
+  },
+  "visual_enhancers": {
+    "textures": "Use subtle 'noise' texture on the dark background to reduce banding and add grit.",
+    "icons": "Lucide React (default). Use 'Square' variants where possible (e.g., SquarePen vs Pen).",
+    "motion": "Fast, linear transitions (150ms). No bouncy springs. This is a tool, not a toy."
+  },
+  "media": {
+    "image_urls": {
+      "login_background": "https://images.unsplash.com/photo-1767294274634-613a3545e36d?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "placeholder_object": "https://images.unsplash.com/photo-1758563440210-acede3303ed1?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "logo_placeholder": "Use a simple geometric shape (Hexagon or Square) with the app initials."
+  },
+  "accessibility": {
+    "contrast": "Ensure WCAG AA compliance. Use APCA for critical text.",
+    "touch_targets": "Minimum 44x44px for all interactive elements on mobile.",
+    "focus_states": "High contrast focus rings (2px solid primary) are mandatory for keyboard navigation."
+  },
+  "instructions_to_main_agent": [
+    "CRITICAL: All UI text must be in RUSSIAN (ru-RU).",
+    "Implement a 'ThemeToggle' component that switches between 'light' and 'dark' classes on the HTML element.",
+    "For the PWA: Ensure the 'viewport' meta tag prevents zooming on inputs.",
+    "Use 'sonner' for all toast notifications (Success: Green, Error: Red).",
+    "For the QR Scanner: Use 'react-qr-reader' or 'html5-qrcode'. Ensure it handles camera permissions gracefully.",
+    "Offline Mode: Use 'tanstack-query' (React Query) with 'persistQueryClient' or local storage sync for offline data handling.",
+    "Admin Dashboard: Use 'shadcn/ui' Data Table for the Objects list. Enable filtering and sorting.",
+    "Forms: Use 'react-hook-form' + 'zod' for validation.",
+    "DO NOT use gradients for buttons or backgrounds. Keep it flat and industrial.",
+    "Add 'data-testid' to all interactive elements."
+  ],
+  "universal_guidelines": [
+    "Avoid 'AI Slop' - no generic centered layouts.",
+    "Use 2-3x more spacing than typical designs.",
+    "Never use 'transition: all'. Animate specific properties.",
+    "Dark colors look good when used independently without gradients.",
+    "Create depth through layered design elements with z-index hierarchy."
+  ]
+}
