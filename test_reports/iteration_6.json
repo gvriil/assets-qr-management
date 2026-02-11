@@ -1,0 +1,90 @@
+{
+  "summary": "Iteration 6 testing completed. All requested features verified: Login without 2FA works correctly, PDF/Excel downloads from Export page work, Audit page loads without errors, Rates page shows calculator with all rates, References page contains data from PDF (36 floors, 25 departments, 42 MOL, 11 OIV). Made with Emergent badge does not block buttons (padding-bottom: 50px applied).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Login without 2FA - direct token return (no 2FA code required)",
+    "Export Page - PDF download works (Приложение__3___Каталог_имущества.pdf)",
+    "Export Page - Excel download works (Приложение__3___Каталог_имущества.xlsx)",
+    "Export Page - All 4 buttons present (Preview, Download PDF, Print, Excel)",
+    "Export Page - No error messages",
+    "Audit Page - Loads successfully with 20 log entries",
+    "Audit Page - No red error messages",
+    "Rates Page - Calculator shows all 3 rates (S=30₽, M=45₽, L=60₽)",
+    "Rates Page - 4 rate entries displayed",
+    "References Page - 36 floor entries (including 13-44)",
+    "References Page - 25 department entries",
+    "References Page - 42 MOL entries",
+    "References Page - 11 OIV entries",
+    "Made with Emergent badge - Not blocking buttons (padding-bottom: 50px)",
+    "Backend API /api/auth/login - Returns token directly without 2FA",
+    "Backend API /api/audit-log - Returns 20 entries (HTTP 200)",
+    "Backend API /api/rates - Returns 4 rates (HTTP 200)",
+    "Backend API /api/references - Returns all reference types (HTTP 200)",
+    "Backend API /api/export/document?format=pdf - Returns PDF (HTTP 200, 227KB)",
+    "Backend API /api/export/document?format=xlsx - Returns Excel (HTTP 200, 22KB)"
+  ],
+  "verified_features": {
+    "login_without_2fa": {
+      "status": "WORKING",
+      "description": "Login endpoint returns access_token directly without requiring 2FA code verification"
+    },
+    "export_page": {
+      "pdf_download": "WORKING - Downloads Приложение__3___Каталог_имущества.pdf",
+      "excel_download": "WORKING - Downloads Приложение__3___Каталог_имущества.xlsx",
+      "buttons": ["Предпросмотр PDF", "Скачать PDF", "Печать", "Excel"]
+    },
+    "audit_page": {
+      "status": "WORKING",
+      "entries_count": 20,
+      "errors": "None"
+    },
+    "rates_page": {
+      "calculator_values": {
+        "S": "30 ₽ (2 мин норма)",
+        "M": "45 ₽ (5 мин норма)",
+        "L": "60 ₽ (7 мин норма)"
+      }
+    },
+    "references_page": {
+      "floors": 36,
+      "departments": 25,
+      "mol": 42,
+      "oiv": 11
+    },
+    "emergent_badge": {
+      "status": "NOT BLOCKING",
+      "padding_bottom": "50px applied to body"
+    }
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_6.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "0020992@gmail.com",
+    "password": "admin123",
+    "note": "2FA disabled - direct login"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All features from iteration 6 are working. 2FA has been disabled per user request. Export downloads work correctly. References contain data from PDF. Made with Emergent badge has proper spacing.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
