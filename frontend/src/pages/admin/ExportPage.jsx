@@ -161,7 +161,17 @@ export default function ExportPage() {
             </div>
 
             <Button 
-              onClick={handleExport} 
+              onClick={() => handleExport('preview')} 
+              disabled={loading}
+              variant="outline"
+              className="w-full"
+              data-testid="export-preview-btn"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Просмотр
+            </Button>
+            <Button 
+              onClick={() => handleExport('download')} 
               disabled={loading}
               className="w-full"
               data-testid="export-btn"
@@ -257,24 +267,41 @@ export default function ExportPage() {
               </Select>
             </div>
 
-            <Button 
-              onClick={handleCatalogExport} 
-              disabled={catalogLoading}
-              className="w-full h-12"
-              data-testid="catalog-export-btn"
-            >
-              {catalogLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Формирование каталога...
-                </>
-              ) : (
-                <>
-                  <Printer className="w-4 h-4 mr-2" />
-                  Сформировать каталог
-                </>
-              )}
-            </Button>
+            {/* 3 Action Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <Button 
+                onClick={() => handleCatalogExport('preview')} 
+                disabled={catalogLoading}
+                variant="outline"
+                data-testid="catalog-preview-btn"
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Просмотр</span>
+              </Button>
+              <Button 
+                onClick={() => handleCatalogExport('download')} 
+                disabled={catalogLoading}
+                variant="outline"
+                data-testid="catalog-download-btn"
+              >
+                {catalogLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">Скачать</span>
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={() => handleCatalogExport('print')} 
+                disabled={catalogLoading || catalogFormat !== 'pdf'}
+                data-testid="catalog-print-btn"
+              >
+                <Printer className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Печать</span>
+              </Button>
+            </div>
 
             {/* Info */}
             <div className="p-3 bg-blue-950/30 border border-blue-800/30 rounded-lg text-xs text-blue-300">
