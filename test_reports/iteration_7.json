@@ -1,0 +1,91 @@
+{
+  "summary": "Iteration 7 - All requested features verified successfully on mobile viewport (375x812). Login without 2FA works, text is white/visible in dark mode, Save button not blocked by badge, QR code section exists on ObjectPage, MOL dropdown shows references, QR Batches page dropdowns work correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Login without 2FA - direct token return (no 2FA code required)",
+    "ObjectPage text visibility - input text color is rgb(255, 255, 255) (white)",
+    "Save button not blocked - positioned at bottom-16, badge is below it",
+    "Save button is clickable - elementFromPoint returns the button",
+    "QR код section exists on ObjectPage with input field",
+    "QR code input has placeholder 'Введите или отсканируйте QR'",
+    "MOL dropdown on ObjectPage shows list from references",
+    "QR Batches page loads correctly (/admin/qr-batches)",
+    "Create batch dialog shows all reference dropdowns",
+    "OIV dropdown shows 10 items (limited by slice(0,10))",
+    "Floor dropdown shows reference data",
+    "MOL dropdown on QR Batches shows 10 items",
+    "References API returns correct counts: 42 MOL, 11 OIV, 36 floors, 25 departments, 3 managements"
+  ],
+  "verified_features": {
+    "login_without_2fa": {
+      "status": "WORKING",
+      "description": "Login endpoint returns access_token directly without requiring 2FA code"
+    },
+    "text_visibility_dark_mode": {
+      "status": "WORKING",
+      "description": "Input text color is rgb(255, 255, 255) - white text on dark background",
+      "css_fix": "index.css: input, select, textarea { color: white !important; }"
+    },
+    "save_button_not_blocked": {
+      "status": "WORKING",
+      "description": "Save button at bottom-16, Made with Emergent badge below it",
+      "button_position": "btnTop: 684, btnBottom: 732",
+      "is_clickable": true
+    },
+    "qr_code_section": {
+      "status": "WORKING",
+      "description": "QR код section with input field on ObjectPage",
+      "data_testid": "qr-code-input",
+      "placeholder": "Введите или отсканируйте QR код"
+    },
+    "mol_dropdown_references": {
+      "status": "WORKING",
+      "description": "MOL dropdown shows list from /api/references (42 MOL entries)",
+      "items_shown": "10 (limited by slice)"
+    },
+    "qr_batches_dropdowns": {
+      "status": "WORKING",
+      "fields": ["ОИВ", "Этаж", "Управление", "Отдел", "Место/Помещение", "ФИО (МОЛ)"],
+      "all_show_references": true
+    },
+    "references_data": {
+      "mol": 42,
+      "oiv": 11,
+      "floor": 36,
+      "department": 25,
+      "management": 3,
+      "total": 117
+    }
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_7.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "0020992@gmail.com",
+    "password": "admin123",
+    "note": "2FA disabled - direct login"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 7 requested features verified: 1) Login without 2FA works, 2) Text is white/visible in dark mode on mobile, 3) Save button not blocked by badge (bottom-16), 4) QR code section exists on ObjectPage, 5) MOL dropdown shows 42 entries from references, 6) QR Batches page dropdowns show references, 7) References contain correct data counts.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
