@@ -205,10 +205,19 @@ class RateCreate(BaseModel):
     time_norm_minutes: int
 
 # QR Batch Models
+class QRLabelData(BaseModel):
+    oiv: Optional[str] = None
+    floor: Optional[str] = None
+    department: Optional[str] = None
+    section: Optional[str] = None
+    location: Optional[str] = None
+    mol: Optional[str] = None
+
 class QRBatchCreate(BaseModel):
     name: str
     count: int
     prefix: str = ""
+    label_data: Optional[QRLabelData] = None
 
 class QRBatchResponse(BaseModel):
     id: str
