@@ -192,20 +192,33 @@ export default function UsersPage() {
                   <Input
                     type="number"
                     min={1}
-                    max={100}
+                    max={1000}
                     value={newInvite.max_uses}
                     onChange={(e) => setNewInvite(prev => ({ ...prev, max_uses: parseInt(e.target.value) || 1 }))}
                     data-testid="invite-max-uses"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Срок действия (дней)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Срок действия (дней)</Label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newInvite.unlimited}
+                        onChange={(e) => setNewInvite(prev => ({ ...prev, unlimited: e.target.checked }))}
+                        className="w-4 h-4 rounded border-gray-300"
+                        data-testid="invite-unlimited-checkbox"
+                      />
+                      <span className="text-muted-foreground">Бессрочно</span>
+                    </label>
+                  </div>
                   <Input
                     type="number"
                     min={1}
-                    max={30}
+                    max={365}
                     value={newInvite.expires_days}
                     onChange={(e) => setNewInvite(prev => ({ ...prev, expires_days: parseInt(e.target.value) || 7 }))}
+                    disabled={newInvite.unlimited}
                     data-testid="invite-expires-days"
                   />
                 </div>
