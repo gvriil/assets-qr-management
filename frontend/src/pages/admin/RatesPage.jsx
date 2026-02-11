@@ -22,6 +22,7 @@ export default function RatesPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingRate, setEditingRate] = useState(null);
   const [formData, setFormData] = useState({
+    name: '',
     complexity: 'S',
     rate: 50,
     time_norm_minutes: 5
@@ -47,13 +48,14 @@ export default function RatesPage() {
     if (rate) {
       setEditingRate(rate);
       setFormData({
+        name: rate.name || '',
         complexity: rate.complexity,
         rate: rate.rate,
         time_norm_minutes: rate.time_norm_minutes
       });
     } else {
       setEditingRate(null);
-      setFormData({ complexity: 'S', rate: 50, time_norm_minutes: 5 });
+      setFormData({ name: '', complexity: 'S', rate: 50, time_norm_minutes: 5 });
     }
     setShowDialog(true);
   };
