@@ -1,0 +1,68 @@
+{
+  "summary": {
+    "total_tests": 7,
+    "passed": 2,
+    "failed": 5,
+    "success_rate": 28.57142857142857
+  },
+  "test_results": [
+    {
+      "test_name": "Health Check",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:16.097301"
+    },
+    {
+      "test_name": "Admin Login (2FA trigger)",
+      "success": true,
+      "details": "Status: 200 (expected 200)",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:16.379777"
+    },
+    {
+      "test_name": "Admin 2FA Verification (code: 399176)",
+      "success": false,
+      "details": "Status: 400 (expected 200)",
+      "response_data": {
+        "detail": "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043a\u043e\u0434"
+      },
+      "timestamp": "2026-02-11T11:51:17.422531"
+    },
+    {
+      "test_name": "Admin 2FA Verification (code: 354299)",
+      "success": false,
+      "details": "Status: 400 (expected 200)",
+      "response_data": {
+        "detail": "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043a\u043e\u0434"
+      },
+      "timestamp": "2026-02-11T11:51:17.464669"
+    },
+    {
+      "test_name": "Admin 2FA Verification (code: 310457)",
+      "success": false,
+      "details": "Status: 400 (expected 200)",
+      "response_data": {
+        "detail": "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043a\u043e\u0434"
+      },
+      "timestamp": "2026-02-11T11:51:17.511702"
+    },
+    {
+      "test_name": "Admin 2FA Verification (code: 286344)",
+      "success": false,
+      "details": "Status: 400 (expected 200)",
+      "response_data": {
+        "detail": "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043a\u043e\u0434"
+      },
+      "timestamp": "2026-02-11T11:51:17.556621"
+    },
+    {
+      "test_name": "Admin 2FA Verification",
+      "success": false,
+      "details": "No valid 2FA code found",
+      "response_data": null,
+      "timestamp": "2026-02-11T11:51:17.557283"
+    }
+  ],
+  "timestamp": "2026-02-11T11:51:17.557573"
+}
