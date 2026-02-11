@@ -428,7 +428,13 @@ async def login(credentials: UserLogin):
     
     logger.info(f"2FA code for {credentials.email}: {code}")
     
-    return {"message": "Код подтверждения отправлен", "requires_2fa": True, "email": credentials.email}
+    # For MVP: return code in response (remove in production!)
+    return {
+        "message": "Код подтверждения отправлен", 
+        "requires_2fa": True, 
+        "email": credentials.email,
+        "dev_code": code  # MVP only - remove in production!
+    }
 
 @api_router.post("/auth/verify-2fa", response_model=TokenResponse)
 async def verify_2fa(data: Verify2FA):
