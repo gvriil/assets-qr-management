@@ -269,7 +269,11 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+    try:
+        return bcrypt.checkpw(password.encode(), hashed.encode())
+    except Exception as e:
+        print(f"Password verify error: {e}")
+        return False
 
 def generate_2fa_code() -> str:
     return ''.join(random.choices(string.digits, k=6))
