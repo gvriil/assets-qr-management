@@ -147,6 +147,50 @@ export default function UsersPage() {
     }
   };
 
+  const handleEditUser = (user) => {
+    setEditingUser({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    
+    setSaving(true);
+    try {
+      await api.put(`/users/${editingUser.id}`, {
+        name: editingUser.name,
+        role: editingUser.role
+      });
+      toast.success('Пользователь обновлён');
+      setShowEditDialog(false);
+      setEditingUser(null);
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Ошибка обновления');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Удалить пользователя "${userName}"? Это действие необратимо.`)) {
+      return;
+    }
+    
+    try {
+      await api.delete(`/users/${userId}`);
+      toast.success('Пользователь удалён');
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Ошибка удаления');
+    }
+  };
+
   const activeInvites = invites.filter(inv => inv.is_active && new Date(inv.expires_at) > new Date());
 
   return (
