@@ -771,6 +771,41 @@ async def get_photo(filename: str):
         raise HTTPException(status_code=404, detail="Фото не найдено")
     return FileResponse(photo_path, media_type="image/jpeg")
 
+class DeletePhotoRequest(BaseModel):
+    photo_url: str
+
+@api_router.delete("/objects/{object_id}/photo")
+async def delete_photo(object_id: str, data: DeletePhotoRequest, user: dict = Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))):
+    """Delete a photo from an object (admin/auditor only)"""
+    obj = await db.objects.find_one({"id": object_id}, {"_id": 0})
+    if not obj:
+        raise HTTPException(status_code=404, detail="Объект не найден")
+    
+    photos = obj.get("photos", [])
+    if data.photo_url not in photos:
+        raise HTTPException(status_code=404, detail="Фото не найдено")
+    
+    # Remove from list
+    photos.remove(data.photo_url)
+    
+    # Update object
+    await db.objects.update_one(
+        {"id": object_id},
+        {"$set": {"photos": photos, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Try to delete file
+    try:
+        filename = data.photo_url.split("/")[-1]
+        photo_path = PHOTOS_DIR / filename
+        if photo_path.exists():
+            photo_path.unlink()
+    except Exception:
+        pass  # File might not exist
+    
+    await log_audit(object_id, "photo_delete", {"photo": data.photo_url}, user["id"])
+    return {"message": "Фото удалено"}
+
 # ==================== CATEGORIES ROUTES ====================
 
 @api_router.post("/categories")
