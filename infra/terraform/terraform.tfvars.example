@@ -1,0 +1,42 @@
+# Yandex Cloud Configuration
+# Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to git!
+
+# Get OAuth token: https://oauth.yandex.ru/authorize?response_type=token&client_id=1a6990aa636648e9b2ef855fa7bec2fb
+yc_token = "your_oauth_token_here"
+
+# Cloud and Folder IDs (get from Yandex Cloud Console)
+yc_cloud_id = "your_cloud_id"
+yc_folder_id = "your_folder_id"
+
+# Default zone
+yc_zone = "ru-central1-a"
+
+# Project configuration
+project_name = "inventory"
+environment = "prod"
+
+# Bucket name (must be globally unique)
+# Use format: company-project-env (e.g., mycompany-inventory-prod)
+bucket_name = "your-unique-bucket-name"
+
+# Enable versioning (recommended for production)
+enable_versioning = false
+
+# CORS origins (your frontend domains)
+cors_origins = [
+  "https://your-domain.ru",
+  "https://www.your-domain.ru"
+]
+
+# Cleanup settings
+tmp_cleanup_days = 7
+old_versions_retention_days = 30
+
+# CDN configuration
+# This should be a subdomain you control (e.g., cdn.yourdomain.ru)
+cdn_cname = "cdn.yourdomain.ru"
+
+# SSL certificate (optional)
+cdn_use_custom_cert = false
+# certificate_manager_id = "your_cert_manager_id"  # if using custom cert
