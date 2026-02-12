@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, Plus, Copy, Trash2, Key, UserPlus, Users } from 'lucide-react';
+import { Loader2, Plus, Copy, Trash2, Key, UserPlus, Users, Edit, UserX } from 'lucide-react';
 
 const ROLE_LABELS = {
   admin: 'Администратор',
