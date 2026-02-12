@@ -455,14 +455,35 @@ export default function UsersPage() {
                         {new Date(user.created_at).toLocaleDateString('ru-RU')}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleActive(user.id, user.is_active)}
-                          data-testid={`toggle-user-${user.id}`}
-                        >
-                          {user.is_active ? '🔒' : '🔓'}
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                            data-testid={`edit-user-${user.id}`}
+                            title="Редактировать"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleActive(user.id, user.is_active)}
+                            data-testid={`toggle-user-${user.id}`}
+                            title={user.is_active ? 'Деактивировать' : 'Активировать'}
+                          >
+                            {user.is_active ? <UserX className="w-4 h-4 text-amber-500" /> : <Users className="w-4 h-4 text-green-500" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id, user.name)}
+                            data-testid={`delete-user-${user.id}`}
+                            title="Удалить"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -472,6 +493,57 @@ export default function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать пользователя</DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  value={editingUser.email}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Имя</Label>
+                <Input
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser(prev => ({ ...prev, name: e.target.value }))}
+                  data-testid="edit-user-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Роль</Label>
+                <Select
+                  value={editingUser.role}
+                  onValueChange={(v) => setEditingUser(prev => ({ ...prev, role: v }))}
+                >
+                  <SelectTrigger data-testid="edit-user-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Отмена</Button>
+            <Button onClick={handleSaveUser} disabled={saving} data-testid="submit-edit-user">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
