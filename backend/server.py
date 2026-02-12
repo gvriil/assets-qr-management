@@ -1307,14 +1307,20 @@ async def import_references(
     imported = 0
     skipped = 0
     
+    # Skip words that indicate headers or non-data rows
+    skip_patterns = ('итого', 'всего', 'перечень', 'nan', 'было', 'стало', 
+                     'описание', 'наименование', 'характеристик', 'column', 'unnamed')
+    
     for value in df[name_col].dropna().unique():
         name = str(value).strip()
         
-        # Skip empty, very short, or summary rows
-        if not name or len(name) < 3:
+        # Skip empty, very short, or summary/header rows
+        if not name or len(name) < 5:
             skipped += 1
             continue
-        if name.lower().startswith(('итого', 'всего', 'перечень', 'nan')):
+            
+        name_lower = name.lower()
+        if any(p in name_lower for p in skip_patterns):
             skipped += 1
             continue
         
