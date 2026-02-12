@@ -477,5 +477,75 @@ docker-compose up -d
 
 ---
 
-**Версия документации:** 1.0  
+---
+
+## Дополнительные файлы для продакшена
+
+### 🐳 Docker Compose конфигурации
+
+- **`docker-compose.yml`** - Базовая конфигурация (с Nginx + Certbot SSL)
+- **`docker-compose.dev.yml`** - Для разработки (без SSL)
+- **`docker-compose.prod.yml`** - Продакшен с Nginx (улучшенная версия)
+- **`docker-compose.caddy.yml`** - Продакшен с Caddy (рекомендуется для упрощенного SSL)
+
+### 📋 Выбор конфигурации
+
+**Для продакшена выберите один из вариантов:**
+
+1. **Nginx + Certbot (традиционный)**
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+   - Требует ручной настройки SSL
+   - Больше контроля над конфигурацией
+   - Используйте `deploy/nginx-proxy.conf`
+
+2. **Caddy (рекомендуется) ⭐**
+   ```bash
+   docker compose -f docker-compose.caddy.yml up -d
+   ```
+   - Автоматический SSL (Let's Encrypt)
+   - Нулевая конфигурация HTTPS
+   - Авто-обновление сертификатов
+   - Используйте `deploy/Caddyfile`
+
+### 🔒 SSL варианты
+
+#### Вариант A: Nginx + Certbot
+См. раздел [SSL сертификаты](#ssl-сертификаты) выше.
+
+#### Вариант B: Caddy (автоматический SSL)
+```bash
+# 1. Отредактируйте Caddyfile
+nano deploy/Caddyfile
+# Замените your-domain.com на ваш домен
+
+# 2. Отредактируйте .env
+nano .env
+# Установите правильные значения
+
+# 3. Запустите с Caddy
+docker compose -f deploy/docker-compose.caddy.yml up -d
+
+# Готово! SSL настроится автоматически
+```
+
+### 📚 Полная документация
+
+Для детальной инструкции по деплою см. **`docs/DEPLOY.md`**
+
+Включает:
+- Настройка сервера Ubuntu/Debian с нуля
+- Firewall и безопасность
+- CI/CD с GitHub Actions
+- Мониторинг и резервное копирование
+- Troubleshooting
+
+### 🔐 Пример environment файла
+
+См. `.env.prod.example` в корне проекта для полного списка переменных окружения.
+
+---
+
+**Версия документации:** 2.0
 **Дата:** Февраль 2026
