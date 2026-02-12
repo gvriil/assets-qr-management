@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/input';
 import { 
   LayoutDashboard, Package, Users, Upload, QrCode, 
   BookOpen, DollarSign, ClipboardCheck, FileText, 
-  History, Settings, Sun, Moon, LogOut, Search, Menu
+  History, Settings, Sun, Moon, LogOut, Search, Menu, HelpCircle
 } from 'lucide-react';
 import {
   Sheet,
