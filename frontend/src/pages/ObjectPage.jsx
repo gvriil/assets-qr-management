@@ -380,6 +380,34 @@ export default function ObjectPage() {
       </header>
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
+        {/* Rejected Notice */}
+        {object.status === 'rejected' && (
+          <Card className="bg-red-950/30 border-red-800/50">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <XCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-300 mb-1">Объект отклонён</p>
+                  {object.reject_reason && (
+                    <p className="text-sm text-red-400 mb-3">
+                      Причина: {object.reject_reason}
+                    </p>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={handleResubmit}
+                    className="bg-amber-600 hover:bg-amber-700"
+                    data-testid="resubmit-btn"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Отправить повторно на проверку
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Photos Section */}
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader className="pb-2">
