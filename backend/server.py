@@ -1269,6 +1269,76 @@ async def execute_import(
         "total_errors": len(errors)
     }
 
+@api_router.post("/import/references")
+async def import_references(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_roles(UserRole.ADMIN, UserRole.OPERATOR))
+):
+    """Import object names into references (object_name type) for autocomplete"""
+    import pandas as pd
+    
+    # Read file
+    content = await file.read()
+    
+    try:
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(BytesIO(content))
+        else:
+            df = pd.read_excel(BytesIO(content))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Ошибка чтения файла: {str(e)}")
+    
+    # Find columns with object names/descriptions
+    name_col = None
+    for col in df.columns:
+        col_lower = str(col).lower()
+        if 'наимен' in col_lower or 'описан' in col_lower or 'название' in col_lower or 'name' in col_lower:
+            name_col = col
+            break
+    
+    if not name_col and len(df.columns) >= 2:
+        # Try second column (first is often ID/number)
+        name_col = df.columns[1]
+    
+    if not name_col:
+        raise HTTPException(status_code=400, detail="Не найдена колонка с наименованиями")
+    
+    # Extract unique names
+    imported = 0
+    skipped = 0
+    
+    for value in df[name_col].dropna().unique():
+        name = str(value).strip()
+        
+        # Skip empty, very short, or summary rows
+        if not name or len(name) < 3:
+            skipped += 1
+            continue
+        if name.lower().startswith(('итого', 'всего', 'перечень', 'nan')):
+            skipped += 1
+            continue
+        
+        # Check if already exists
+        existing = await db.references.find_one({"type": "object_name", "name": name})
+        if existing:
+            skipped += 1
+            continue
+        
+        # Add to references
+        await db.references.insert_one({
+            "id": str(uuid.uuid4()),
+            "type": "object_name",
+            "name": name,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        imported += 1
+    
+    return {
+        "imported": imported,
+        "skipped": skipped,
+        "total": len(df[name_col].dropna().unique())
+    }
+
 # ==================== EXPORT ROUTES ====================
 
 @api_router.get("/export/objects")
