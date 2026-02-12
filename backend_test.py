@@ -11,7 +11,7 @@ from datetime import datetime
 import time
 
 class InventoryAPITester:
-    def __init__(self, base_url="https://assettracker-41.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://qrscan-6.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.user_token = None
