@@ -291,58 +291,6 @@ export default function ObjectPage() {
     }
   };
 
-  // Combobox with custom input - search anywhere in string
-  const ComboInput = ({ label, value, options, onChange, placeholder }) => {
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [inputValue, setInputValue] = useState(value || '');
-    
-    // Update input when value prop changes
-    useEffect(() => {
-      setInputValue(value || '');
-    }, [value]);
-    
-    // Filter options - match anywhere in string (case insensitive)
-    const filteredOptions = options.filter(opt => 
-      opt.toLowerCase().includes((inputValue || '').toLowerCase())
-    );
-    
-    const handleInputChange = (e) => {
-      const newValue = e.target.value;
-      setInputValue(newValue);
-      onChange(newValue);
-    };
-    
-    return (
-      <div className="space-y-2 relative">
-        <Label className="text-zinc-300">{label}</Label>
-        <Input
-          value={inputValue}
-          onChange={handleInputChange}
-          onFocus={() => setShowDropdown(true)}
-          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-          placeholder={placeholder}
-          className="bg-zinc-900 border-zinc-700 text-white"
-        />
-        {showDropdown && filteredOptions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
-            {filteredOptions.slice(0, 15).map((opt, i) => (
-              <div
-                key={i}
-                className="px-3 py-2 hover:bg-zinc-700 cursor-pointer text-sm text-white"
-                onMouseDown={() => {
-                  setInputValue(opt);
-                  onChange(opt);
-                }}
-              >
-                {opt}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
