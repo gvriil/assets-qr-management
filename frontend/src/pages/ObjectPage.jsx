@@ -132,6 +132,7 @@ export default function ObjectPage() {
       const molsArr = [];
       const managementsArr = [];
       const oivsArr = [];
+      const objectNamesArr = [];
       
       refsRes.data.forEach(r => {
         if (r.type === 'floor') floorsArr.push(r.name);
@@ -139,6 +140,7 @@ export default function ObjectPage() {
         if (r.type === 'mol') molsArr.push(r.name);
         if (r.type === 'management') managementsArr.push(r.name);
         if (r.type === 'oiv') oivsArr.push(r.name);
+        if (r.type === 'object_name') objectNamesArr.push(r.name);
       });
       
       setFloors(floorsArr);
@@ -146,6 +148,7 @@ export default function ObjectPage() {
       setMols(molsArr);
       setManagements(managementsArr);
       setOivs(oivsArr);
+      setObjectNames(objectNamesArr);
     } catch (e) {
       console.error('Error loading references:', e);
     }
