@@ -173,7 +173,9 @@ const transformRow = (row, mapping, parseCommas = false) => {
 export default function ImportPage() {
   const { api } = useAuth();
   const fileInputRef = useRef(null);
+  const refFileInputRef = useRef(null);
   
+  const [importMode, setImportMode] = useState('objects'); // objects or references
   const [step, setStep] = useState('upload'); // upload, mapping, preview, result
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -181,6 +183,10 @@ export default function ImportPage() {
   const [parseCommas, setParseCommas] = useState(true); // Разбивать по запятым
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  
+  // Reference import state
+  const [refLoading, setRefLoading] = useState(false);
+  const [refResult, setRefResult] = useState(null);
   
   // Import options
   const [options, setOptions] = useState({
@@ -192,6 +198,33 @@ export default function ImportPage() {
   // Preview with validation
   const [validatedPreview, setValidatedPreview] = useState([]);
   const [previewErrors, setPreviewErrors] = useState({ count: 0, rows: [] });
+
+  // Import to references (object names dictionary)
+  const handleRefFileSelect = async (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setRefLoading(true);
+    setRefResult(null);
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res = await api.post('/import/references', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setRefResult(res.data);
+      toast.success(`Импортировано: ${res.data.imported} наименований`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Ошибка импорта');
+    } finally {
+      setRefLoading(false);
+      if (refFileInputRef.current) {
+        refFileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleFileSelect = async (e) => {
     const selectedFile = e.target.files?.[0];
