@@ -397,6 +397,20 @@ export default function ObjectPage() {
                     alt={`Фото ${i + 1}`}
                     className="w-full h-full object-cover rounded-lg"
                   />
+                  {canDeletePhotos && (
+                    <button
+                      onClick={() => handleDeletePhoto(photo)}
+                      disabled={deletingPhoto === photo}
+                      className="absolute top-1 right-1 p-1.5 bg-red-600 hover:bg-red-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      data-testid={`delete-photo-${i}`}
+                    >
+                      {deletingPhoto === photo ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-white" />
+                      ) : (
+                        <Trash2 className="w-3 h-3 text-white" />
+                      )}
+                    </button>
+                  )}
                 </div>
               ))}
               {(!object.photos || object.photos.length === 0) && (
@@ -405,6 +419,11 @@ export default function ObjectPage() {
                 </div>
               )}
             </div>
+            
+            {/* Photo format info */}
+            <p className="text-xs text-zinc-500 mb-2">
+              Формат: JPG, PNG. Макс. размер: 5 МБ. Рекомендуется: 1200×900 px
+            </p>
             
             {/* Photo Upload Buttons */}
             <div className="flex gap-2">
