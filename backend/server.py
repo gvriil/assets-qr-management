@@ -26,6 +26,7 @@ from PIL import Image
 import aiofiles
 import json
 import re
+from s3_storage import get_s3_storage, S3Storage
 
 # Register Cyrillic-capable fonts
 try:
@@ -246,6 +247,39 @@ class QRBatchResponse(BaseModel):
     count: int
     prefix: str
     created_at: str
+
+# S3 File Upload Models
+class PresignedUploadRequest(BaseModel):
+    filename: str
+    content_type: str
+    content_length: int
+    object_id: str  # Object ID this file belongs to
+    prefix: str = "objects"
+
+class PresignedUploadResponse(BaseModel):
+    upload_url: str
+    key: str
+    method: str
+    headers: Dict[str, str]
+    expires_at: float
+
+class FileConfirmRequest(BaseModel):
+    key: str
+    filename: str
+    content_type: str
+    size: int
+
+class FileMetadata(BaseModel):
+    id: str
+    key: str  # S3 key (path in bucket)
+    filename: str
+    content_type: str
+    size: int
+    object_id: str  # Associated object ID
+    public_url: Optional[str] = None  # Computed, not stored in DB
+    created_at: str
+    created_by: Optional[str] = None
+    etag: Optional[str] = None
     created_by: str
     status: str
     printed: int = 0
@@ -2274,9 +2308,183 @@ async def qa_reject(object_id: str, reason: str = "", user: dict = Depends(requi
 
 # ==================== HEALTH CHECK ====================
 
+# ==================== S3 FILE UPLOAD ENDPOINTS ====================
+
+@api_router.post("/files/presign", response_model=PresignedUploadResponse)
+async def presign_upload(
+    request: PresignedUploadRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Generate presigned URL for direct S3 upload
+
+    This endpoint returns a presigned URL that the client can use to upload
+    files directly to S3 storage, bypassing the backend server.
+
+    Flow:
+    1. Client requests presigned URL with file metadata
+    2. Server generates presigned PUT URL with expiration
+    3. Client uploads file directly to S3 using the URL
+    4. Client confirms upload via /files/confirm endpoint
+    """
+    # Verify user token
+    user = await verify_token(credentials.credentials)
+
+    # Get S3 storage instance
+    s3 = get_s3_storage()
+    if not s3.is_enabled():
+        raise HTTPException(status_code=503, detail="S3 storage is not configured")
+
+    # Validate content type (images only)
+    allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+    if request.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Content type '{request.content_type}' not allowed. Allowed types: {', '.join(allowed_types)}"
+        )
+
+    try:
+        # Generate unique key with object_id
+        key = s3.generate_key(
+            filename=request.filename,
+            object_id=request.object_id,
+            prefix=request.prefix
+        )
+
+        # Generate presigned URL
+        presigned_data = s3.generate_presigned_put_url(
+            key=key,
+            content_type=request.content_type,
+            content_length=request.content_length
+        )
+
+        logger.info(f"Generated presigned URL for user {user['email']}: key={key}")
+
+        return PresignedUploadResponse(**presigned_data)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to generate presigned URL: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate upload URL")
+
+
+@api_router.post("/files/confirm", response_model=FileMetadata)
+async def confirm_upload(
+    request: FileConfirmRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Confirm successful file upload and store metadata
+
+    After the client successfully uploads a file to S3 using the presigned URL,
+    they should call this endpoint to save the file metadata in the database.
+    """
+    # Verify user token
+    user = await verify_token(credentials.credentials)
+
+    # Get S3 storage instance
+    s3 = get_s3_storage()
+    if not s3.is_enabled():
+        raise HTTPException(status_code=503, detail="S3 storage is not configured")
+
+    # Verify that object exists in S3
+    if not s3.check_object_exists(request.key):
+        raise HTTPException(status_code=404, detail="File not found in storage")
+
+    # Get object metadata from S3
+    s3_metadata = s3.get_object_metadata(request.key)
+    if not s3_metadata:
+        raise HTTPException(status_code=500, detail="Failed to get file metadata")
+
+    # Verify size matches
+    if s3_metadata['size'] != request.size:
+        logger.warning(f"Size mismatch for {request.key}: expected {request.size}, got {s3_metadata['size']}")
+
+    # Save metadata to database (without public_url - computed at read time)
+    file_doc = {
+        "id": str(uuid.uuid4()),
+        "key": request.key,
+        "filename": request.filename,
+        "content_type": request.content_type,
+        "size": s3_metadata['size'],
+        "object_id": request.key.split('/')[1] if '/' in request.key else "unknown",  # Extract from key
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user['id'],
+        "etag": s3_metadata.get('etag')
+    }
+
+    try:
+        await db.files.insert_one(file_doc)
+        logger.info(f"File metadata saved: {request.key} by user {user['email']}")
+
+        # Add computed public_url for response
+        response_data = {**file_doc, "public_url": s3.get_public_url(request.key)}
+        return FileMetadata(**response_data)
+
+    except Exception as e:
+        logger.error(f"Failed to save file metadata: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save file metadata")
+
+
+@api_router.get("/files/{file_id}", response_model=FileMetadata)
+async def get_file_metadata(
+    file_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get file metadata by ID"""
+    # Verify user token
+    await verify_token(credentials.credentials)
+
+    file_doc = await db.files.find_one({"id": file_id})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Add computed public_url for response
+    s3 = get_s3_storage()
+    response_data = {**file_doc, "public_url": s3.get_public_url(file_doc['key'])}
+    return FileMetadata(**response_data)
+
+
+@api_router.delete("/files/{file_id}")
+async def delete_file(
+    file_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Delete file from S3 and database"""
+    # Verify user token (only admin or file owner)
+    user = await verify_token(credentials.credentials)
+
+    file_doc = await db.files.find_one({"id": file_id})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Check permission (admin or owner)
+    if user['role'] != UserRole.ADMIN and file_doc['created_by'] != user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this file")
+
+    # Delete from S3
+    s3 = get_s3_storage()
+    if s3.is_enabled():
+        s3.delete_object(file_doc['key'])
+
+    # Delete from database
+    await db.files.delete_one({"id": file_id})
+
+    logger.info(f"File deleted: {file_doc['key']} by user {user['email']}")
+
+    return {"status": "deleted", "file_id": file_id}
+
+
 @api_router.get("/health")
 async def health():
-    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+    """Health check endpoint"""
+    s3 = get_s3_storage()
+    return {
+        "status": "ok",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "s3_enabled": s3.is_enabled()
+    }
 
 # Include router
 app.include_router(api_router)
