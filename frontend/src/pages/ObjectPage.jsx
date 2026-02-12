@@ -204,6 +204,40 @@ export default function ObjectPage() {
     }
   };
 
+  // Resubmit rejected object for review
+  const handleResubmit = async () => {
+    try {
+      await api.post(`/objects/${id}/verify`);
+      toast.success('Повторно отправлено на проверку');
+      loadObject();
+    } catch (err) {
+      toast.error('Ошибка отправки');
+    }
+  };
+
+  // Delete photo (admin/auditor only)
+  const handleDeletePhoto = async (photoUrl) => {
+    if (!canDeletePhotos) return;
+    
+    if (!window.confirm('Удалить это фото?')) return;
+    
+    setDeletingPhoto(photoUrl);
+    try {
+      await api.delete(`/objects/${id}/photo`, { 
+        data: { photo_url: photoUrl } 
+      });
+      setObject(prev => ({
+        ...prev,
+        photos: prev.photos.filter(p => p !== photoUrl)
+      }));
+      toast.success('Фото удалено');
+    } catch (err) {
+      toast.error('Ошибка удаления фото');
+    } finally {
+      setDeletingPhoto(null);
+    }
+  };
+
   // Handle file selection (from gallery)
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -218,10 +252,17 @@ export default function ObjectPage() {
     await uploadPhoto(file);
   };
 
-  // Upload photo to server
+  // Upload photo to server (max 5MB, auto-resize)
   const uploadPhoto = async (file) => {
     if (isNew) {
       toast.error('Сначала сохраните объект');
+      return;
+    }
+    
+    // Check file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('Максимальный размер фото: 5 МБ');
       return;
     }
 
