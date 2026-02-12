@@ -411,6 +411,7 @@ export default function ImportPage() {
     setResult(null);
     setValidatedPreview([]);
     setPreviewErrors({ count: 0, rows: [] });
+    setRefResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -422,12 +423,27 @@ export default function ImportPage() {
         <h1 className="text-2xl font-bold font-['Barlow_Condensed'] uppercase tracking-tight">
           Импорт данных
         </h1>
-        <p className="text-muted-foreground">Загрузка объектов из Excel/CSV с проверкой</p>
+        <p className="text-muted-foreground">Загрузка данных из Excel/CSV</p>
       </div>
 
-      {/* Progress Steps */}
-      <div className="flex items-center gap-2 text-sm">
-        <Badge variant={step === 'upload' ? 'default' : 'secondary'}>1. Файл</Badge>
+      {/* Import Mode Tabs */}
+      <Tabs value={importMode} onValueChange={(v) => { setImportMode(v); handleReset(); }}>
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="objects" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Объекты
+          </TabsTrigger>
+          <TabsTrigger value="references" className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" />
+            Справочник наименований
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Objects Import Tab */}
+        <TabsContent value="objects" className="space-y-4">
+          {/* Progress Steps */}
+          <div className="flex items-center gap-2 text-sm mt-4">
+            <Badge variant={step === 'upload' ? 'default' : 'secondary'}>1. Файл</Badge>
         <ArrowRight className="w-4 h-4 text-muted-foreground" />
         <Badge variant={step === 'mapping' ? 'default' : 'secondary'}>2. Маппинг</Badge>
         <ArrowRight className="w-4 h-4 text-muted-foreground" />
