@@ -82,6 +82,7 @@ export default function ObjectPage() {
   const [managements, setManagements] = useState([]);
   const [oivs, setOivs] = useState([]);
   const [mols, setMols] = useState([]);
+  const [objectNames, setObjectNames] = useState([]); // For name autocomplete
   const [auditLog, setAuditLog] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   
