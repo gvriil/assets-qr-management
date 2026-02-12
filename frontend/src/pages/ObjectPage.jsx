@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { 
   Loader2, Save, Camera, Image as ImageIcon, Plus, ArrowLeft, 
-  Send, QrCode, Clock, Trash2, History, X
+  Send, QrCode, Clock, Trash2, History, X, XCircle
 } from 'lucide-react';
 
 const STATUS_LABELS = {
