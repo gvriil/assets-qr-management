@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -7,76 +7,21 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
+import { ComboInput } from '../../components/ui/combo-input';
 import { toast } from 'sonner';
 import { Loader2, Plus, QrCode, Download, Printer, AlertTriangle, Eye, ExternalLink } from 'lucide-react';
 
-// Memoized Combobox component to prevent re-renders losing focus
-const ComboSelect = memo(function ComboSelect({ label, value, options, onChange, placeholder }) {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [localValue, setLocalValue] = useState(value || '');
-  const inputRef = useRef(null);
-  const isInternalChange = useRef(false);
-  
-  // Sync with external value
-  useEffect(() => {
-    if (!isInternalChange.current) {
-      setLocalValue(value || '');
-    }
-    isInternalChange.current = false;
-  }, [value]);
-  
-  const filteredOptions = options.filter(opt => 
-    opt && localValue && opt.toLowerCase().includes(localValue.toLowerCase())
-  );
-  
-  const handleChange = useCallback((e) => {
-    const newValue = e.target.value;
-    isInternalChange.current = true;
-    setLocalValue(newValue);
-    onChange(newValue);
-  }, [onChange]);
-  
-  const handleSelect = useCallback((opt) => {
-    isInternalChange.current = true;
-    setLocalValue(opt);
-    onChange(opt);
-    setShowDropdown(false);
-  }, [onChange]);
-  
-  return (
-    <div className="space-y-1 relative">
-      <Label className="text-xs">{label}</Label>
-      <Input
-        ref={inputRef}
-        value={localValue}
-        onChange={handleChange}
-        onFocus={() => setShowDropdown(true)}
-        onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-        placeholder={placeholder}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-      />
-      {showDropdown && filteredOptions.length > 0 && localValue.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
-          {filteredOptions.slice(0, 10).map((opt, i) => (
-            <div
-              key={i}
-              className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelect(opt);
-              }}
-            >
-              {opt}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
+// Use ComboInput but with compact styling for this page
+const ComboSelect = ({ label, value, options, onChange, placeholder }) => (
+  <ComboInput
+    label={label}
+    value={value}
+    options={options}
+    onChange={onChange}
+    placeholder={placeholder}
+    className="[&>label]:text-xs"
+  />
+);
 
 export default function QRBatchesPage() {
   const { api } = useAuth();
