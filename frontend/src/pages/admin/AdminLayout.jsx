@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { path: '/admin/qa', icon: ClipboardCheck, label: 'Проверка' },
   { path: '/admin/export', icon: FileText, label: 'Экспорт' },
   { path: '/admin/audit', icon: History, label: 'Аудит' },
+  { path: '/admin/help', icon: HelpCircle, label: 'Инструкции' },
 ];
 
 export default function AdminLayout() {
