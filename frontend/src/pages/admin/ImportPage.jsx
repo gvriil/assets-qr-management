@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../../components/ui/badge';
 import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Loader2, Upload, FileSpreadsheet, CheckCircle, AlertCircle, 
-  ArrowRight, Download, Eye, AlertTriangle, Info
+  ArrowRight, Download, Eye, AlertTriangle, Info, BookOpen, Package
 } from 'lucide-react';
 
 const FIELD_OPTIONS = [
