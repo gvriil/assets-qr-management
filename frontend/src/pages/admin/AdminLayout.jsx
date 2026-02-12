@@ -173,7 +173,7 @@ export default function AdminLayout() {
             </Button>
           </div>
 
-          {/* Back to Scanner */}
+          {/* Back to Scanner - Desktop */}
           <Button 
             variant="outline" 
             size="sm"
@@ -186,10 +186,30 @@ export default function AdminLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 lg:p-6">
+        <main className="p-4 lg:p-6 pb-24">
           <Outlet />
         </main>
       </div>
+
+      {/* Floating QR Scanner Button - Mobile Only */}
+      <button
+        onClick={() => navigate('/scanner')}
+        className="fixed bottom-20 right-4 z-50 sm:hidden w-14 h-14 bg-primary hover:bg-primary/90 rounded-xl shadow-lg flex items-center justify-center border-2 border-primary-foreground/20 transition-transform active:scale-95"
+        data-testid="floating-scanner-btn"
+        title="Сканер"
+      >
+        <div className="relative">
+          {/* QR Code Icon with frame */}
+          <div className="w-8 h-8 border-2 border-primary-foreground rounded-lg flex items-center justify-center">
+            <QrCode className="w-5 h-5 text-primary-foreground" />
+          </div>
+          {/* Corner accents */}
+          <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-primary-foreground rounded-tl"></div>
+          <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-primary-foreground rounded-tr"></div>
+          <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-primary-foreground rounded-bl"></div>
+          <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-primary-foreground rounded-br"></div>
+        </div>
+      </button>
     </div>
   );
 }
