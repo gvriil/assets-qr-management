@@ -38,15 +38,17 @@ export default function ObjectPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { api } = useAuth();
+  const { api, user } = useAuth();
   const { isOnline, queueAction, cacheObject, getFieldSession, saveFieldSession } = useOffline();
   
   const isNew = id === 'new';
   const qrFromUrl = searchParams.get('qr');
+  const canDeletePhotos = user?.role === 'admin' || user?.role === 'auditor';
   
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(null);
   
   // Get saved session for new objects
   const sessionDefaults = isNew ? getFieldSession() : {};
