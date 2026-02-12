@@ -53,6 +53,10 @@ export default function UsersPage() {
   });
   
   const [saving, setSaving] = useState(false);
+  
+  // Edit user dialog
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
     loadData();
