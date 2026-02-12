@@ -521,16 +521,13 @@ export default function ObjectPage() {
             <CardTitle className="text-lg">Основная информация</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Наименование *</Label>
-              <Input
-                value={object.name || ''}
-                onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="Введите название объекта"
-                className="bg-zinc-900 border-zinc-700 text-white"
-                data-testid="object-name-input"
-              />
-            </div>
+            <ComboInput
+              label="Наименование *"
+              value={object.name}
+              options={objectNames}
+              onChange={(v) => handleChange('name', v)}
+              placeholder="Введите или выберите название"
+            />
 
             <ComboInput
               label="Категория"
