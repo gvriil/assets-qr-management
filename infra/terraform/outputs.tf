@@ -21,7 +21,7 @@ output "bucket_domain" {
 output "s3_access_key_id" {
   description = "S3 access key ID"
   value       = yandex_iam_service_account_static_access_key.storage_key.access_key
-  sensitive   = false  # Needed for output to .env
+  sensitive   = true
 }
 
 output "s3_secret_access_key" {

@@ -17,7 +17,9 @@ cd ..
 # 3. Export credentials to .env
 ./outputs-to-env.sh
 
-# 4. Configure DNS CNAME (see output)
+# 4. Configure DNS CNAME
+# Get exact CNAME target from: Yandex Cloud Console → CDN → DNS settings
+# Add DNS record: Type=CNAME, Name=cdn.yourdomain.ru, Value=<from console>
 
 # 5. Restart backend
 cd ../deploy

@@ -182,24 +182,28 @@ The script will:
 
 After Terraform completes, configure DNS:
 
+**Get the exact CNAME target from Yandex Cloud Console:**
+1. Go to [CDN Resources](https://console.cloud.yandex.ru/folders/{folder-id}/cdn/resources)
+2. Click on your CDN resource
+3. Find **DNS settings** section
+4. Copy the **CNAME value** exactly as shown
+
+**Add DNS record:**
 ```
 Type: CNAME
-Name: cdn
-Value: <from Terraform output>
+Name: cdn (or your subdomain)
+Value: <exact value from Yandex Cloud CDN → DNS settings>
 TTL: 3600
 ```
-
-**Get CDN endpoint from console:**
-1. Go to [CDN Resources](https://console.cloud.yandex.ru/folders/{folder-id}/cdn/resources)
-2. Find your resource
-3. Copy the **Origin domain** value
 
 Example:
 ```
 Name: cdn.mycompany.ru
 Type: CNAME
-Value: cl-abc12345.edgecdn.ru
+Value: <use exact value shown in Yandex Cloud Console>
 ```
+
+⚠️ **Important:** Use the exact CNAME value from the console - it may vary by region and configuration.
 
 ### Step 5: Update Environment
 
