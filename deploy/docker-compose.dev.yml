@@ -1,0 +1,62 @@
+version: '3.8'
+
+# Simplified docker-compose for development/testing WITHOUT SSL
+# Use this for quick local testing before deploying to production
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: inventory-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: devpassword123
+    networks:
+      - inventory-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    container_name: inventory-backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    ports:
+      - "8001:8001"
+    environment:
+      MONGO_URL: mongodb://admin:devpassword123@mongodb:27017
+      DB_NAME: inventory
+      JWT_SECRET: dev-secret-key-not-for-production
+      CORS_ORIGINS: "*"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - inventory-network
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        REACT_APP_BACKEND_URL: http://localhost:8001
+    container_name: inventory-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - inventory-network
+
+networks:
+  inventory-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  uploads_data:
