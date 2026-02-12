@@ -104,6 +104,7 @@ const AppContent = () => {
           <Route path="qa" element={<QAPage />} />
           <Route path="export" element={<ExportPage />} />
           <Route path="audit" element={<AuditPage />} />
+          <Route path="help" element={<HelpPage />} />
         </Route>
         
         {/* Default redirect */}
