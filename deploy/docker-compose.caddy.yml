@@ -1,0 +1,127 @@
+version: '3.8'
+
+# Production docker-compose with Caddy (Recommended)
+# Caddy provides automatic HTTPS with Let's Encrypt - zero configuration SSL!
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: inventory-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+      - ./backups:/backups
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    networks:
+      - inventory-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend (FastAPI)
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    image: inventory-backend:latest
+    container_name: inventory-backend
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      MONGO_URL: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017
+      DB_NAME: ${DB_NAME:-inventory}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      ENVIRONMENT: production
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - inventory-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (React)
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        REACT_APP_BACKEND_URL: ${PUBLIC_URL}
+    image: inventory-frontend:latest
+    container_name: inventory-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - inventory-network
+
+  # Caddy - Automatic HTTPS Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: inventory-caddy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    networks:
+      - inventory-network
+    environment:
+      - CADDY_ADMIN=0.0.0.0:2019
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  inventory-network:
+    driver: bridge
+    name: inventory-network
+
+volumes:
+  # MongoDB data persistence
+  mongodb_data:
+    driver: local
+    name: inventory-mongodb-data
+
+  # Uploaded files persistence
+  uploads_data:
+    driver: local
+    name: inventory-uploads-data
+
+  # Caddy data (certificates, etc.)
+  caddy_data:
+    driver: local
+    name: inventory-caddy-data
+
+  # Caddy configuration
+  caddy_config:
+    driver: local
+    name: inventory-caddy-config
+
+  # Caddy logs
+  caddy_logs:
+    driver: local
+    name: inventory-caddy-logs
