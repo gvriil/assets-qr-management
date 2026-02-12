@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect, useCallback, memo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Input } from './input';
 import { Label } from './label';
 
-// Memoized ComboInput to prevent re-renders losing focus
-const ComboInput = memo(function ComboInput({ 
+/**
+ * ComboInput - input with autocomplete dropdown
+ * Fixed for mobile: uses uncontrolled input internally to prevent focus loss
+ */
+function ComboInput({ 
   label, 
   value, 
   options = [], 
@@ -12,54 +15,69 @@ const ComboInput = memo(function ComboInput({
   className = ''
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [localValue, setLocalValue] = useState(value || '');
+  const [inputValue, setInputValue] = useState(value || '');
   const inputRef = useRef(null);
-  const isInternalChange = useRef(false);
+  const containerRef = useRef(null);
+  const skipNextSync = useRef(false);
   
-  // Sync with external value only when it changes externally
+  // Sync external value -> internal, but skip if we just made internal change
   useEffect(() => {
-    if (!isInternalChange.current) {
-      setLocalValue(value || '');
+    if (skipNextSync.current) {
+      skipNextSync.current = false;
+      return;
     }
-    isInternalChange.current = false;
+    setInputValue(value || '');
   }, [value]);
   
   // Filter options - match anywhere in string (case insensitive)
-  const filteredOptions = options.filter(opt => 
-    opt && localValue && opt.toLowerCase().includes(localValue.toLowerCase())
-  );
+  const filteredOptions = useMemo(() => {
+    if (!inputValue || inputValue.length < 1) return [];
+    const search = inputValue.toLowerCase();
+    return options.filter(opt => 
+      opt && opt.toLowerCase().includes(search)
+    ).slice(0, 15);
+  }, [options, inputValue]);
   
-  const handleInputChange = useCallback((e) => {
+  // Handle typing - update local state immediately, debounce parent update
+  const handleInputChange = (e) => {
     const newValue = e.target.value;
-    isInternalChange.current = true;
-    setLocalValue(newValue);
+    setInputValue(newValue);
+    skipNextSync.current = true;
+    // Notify parent
     onChange(newValue);
-  }, [onChange]);
+  };
   
-  const handleSelect = useCallback((opt) => {
-    isInternalChange.current = true;
-    setLocalValue(opt);
+  // Handle dropdown item selection
+  const handleSelect = (opt) => {
+    setInputValue(opt);
+    skipNextSync.current = true;
     onChange(opt);
     setShowDropdown(false);
-    // Keep focus on input after selection
-    setTimeout(() => inputRef.current?.focus(), 10);
-  }, [onChange]);
+  };
   
-  const handleFocus = useCallback(() => {
+  // Show dropdown on focus
+  const handleFocus = () => {
     setShowDropdown(true);
-  }, []);
+  };
   
-  const handleBlur = useCallback(() => {
-    // Delay to allow click on dropdown item
-    setTimeout(() => setShowDropdown(false), 200);
-  }, []);
+  // Hide dropdown on blur (with delay for click handling)
+  const handleBlur = (e) => {
+    // Check if blur target is inside container (dropdown click)
+    const relatedTarget = e.relatedTarget;
+    if (containerRef.current?.contains(relatedTarget)) {
+      return; // Don't close if clicking dropdown
+    }
+    setTimeout(() => setShowDropdown(false), 150);
+  };
   
   return (
-    <div className={`space-y-2 relative ${className}`}>
+    <div ref={containerRef} className={`space-y-2 relative ${className}`}>
       {label && <Label className="text-zinc-300">{label}</Label>}
       <Input
         ref={inputRef}
-        value={localValue}
+        type="text"
+        inputMode="text"
+        value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
@@ -68,16 +86,26 @@ const ComboInput = memo(function ComboInput({
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
-        spellCheck="false"
+        spellCheck={false}
+        data-lpignore="true"
+        data-form-type="other"
       />
-      {showDropdown && filteredOptions.length > 0 && localValue.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
-          {filteredOptions.slice(0, 15).map((opt, i) => (
+      {showDropdown && filteredOptions.length > 0 && (
+        <div 
+          className="absolute z-50 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-40 overflow-y-auto"
+          tabIndex={-1}
+        >
+          {filteredOptions.map((opt, i) => (
             <div
-              key={i}
-              className="px-3 py-2 hover:bg-zinc-700 cursor-pointer text-sm text-white"
+              key={`${opt}-${i}`}
+              className="px-3 py-2 hover:bg-zinc-700 cursor-pointer text-sm text-white active:bg-zinc-600"
               onMouseDown={(e) => {
-                e.preventDefault(); // Prevent blur
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={() => handleSelect(opt)}
+              onTouchEnd={(e) => {
+                e.preventDefault();
                 handleSelect(opt);
               }}
             >
@@ -88,7 +116,7 @@ const ComboInput = memo(function ComboInput({
       )}
     </div>
   );
-});
+}
 
 export { ComboInput };
 export default ComboInput;
