@@ -539,6 +539,18 @@ async def update_user(user_id: str, data: dict, admin: dict = Depends(require_ro
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return {"message": "Обновлено"}
 
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, admin: dict = Depends(require_roles(UserRole.ADMIN))):
+    """Delete a user (admin only)"""
+    # Prevent self-deletion
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
+    
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    return {"message": "Пользователь удалён"}
+
 # ==================== INVITE CODES ROUTES ====================
 
 @api_router.post("/invites", response_model=InviteCodeResponse)
