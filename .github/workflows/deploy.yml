@@ -1,0 +1,102 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+
+            echo "🚀 Starting deployment..."
+
+            # Navigate to deployment directory
+            cd /opt/inventory || exit 1
+
+            # Fetch latest changes
+            echo "📥 Fetching latest code..."
+            git fetch origin main
+
+            # Reset to latest commit (hard reset to avoid conflicts)
+            echo "🔄 Updating to latest version..."
+            git reset --hard origin/main
+
+            # Pull environment variables (make sure .env exists on server)
+            if [ ! -f .env ]; then
+              echo "⚠️  Warning: .env file not found. Please create it manually."
+              exit 1
+            fi
+
+            # Build and restart containers with minimal downtime
+            echo "🐳 Building and deploying containers..."
+            docker compose -f deploy/docker-compose.prod.yml build --parallel
+            docker compose -f deploy/docker-compose.prod.yml up -d --remove-orphans
+
+            # Wait for backend to be ready
+            echo "⏳ Waiting for services to start..."
+            sleep 10
+
+            # Cleanup old images
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+
+            echo "✅ Deployment completed!"
+          ENDSSH
+
+      - name: Health check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+
+            echo "🏥 Running health check..."
+
+            # Check if backend is responding
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/api/health)
+
+            if [ "$RESPONSE" = "200" ]; then
+              echo "✅ Health check passed! Backend is healthy."
+              exit 0
+            else
+              echo "❌ Health check failed! Backend returned status: $RESPONSE"
+              echo "🔍 Checking container logs..."
+              docker compose -f /opt/inventory/deploy/docker-compose.prod.yml logs --tail=50 backend
+              exit 1
+            fi
+          ENDSSH
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi
