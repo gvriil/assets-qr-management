@@ -859,6 +859,84 @@ export default function ImportPage() {
           </div>
         </div>
       )}
+        </TabsContent>
+
+        {/* References Import Tab */}
+        <TabsContent value="references" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Импорт в справочник наименований
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm space-y-2">
+                    <p>
+                      Загрузите Excel/CSV файл с перечнем имущества. Система извлечёт уникальные 
+                      наименования объектов и добавит их в справочник.
+                    </p>
+                    <p className="text-muted-foreground">
+                      После импорта наименования будут подставляться автоматически при вводе 
+                      на странице объекта.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <input
+                  ref={refFileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleRefFileSelect}
+                  className="hidden"
+                  id="ref-file-input"
+                />
+                <Button
+                  onClick={() => refFileInputRef.current?.click()}
+                  disabled={refLoading}
+                  className="flex-1"
+                  data-testid="upload-ref-btn"
+                >
+                  {refLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {refLoading ? 'Импортирую...' : 'Выбрать файл Excel/CSV'}
+                </Button>
+              </div>
+
+              {refResult && (
+                <div className="p-4 bg-emerald-950/30 border border-emerald-800 rounded-lg">
+                  <div className="flex items-center gap-2 text-emerald-400 font-medium mb-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Импорт завершён
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Добавлено:</span>
+                      <span className="ml-2 font-medium">{refResult.imported}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Пропущено:</span>
+                      <span className="ml-2 font-medium">{refResult.skipped}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Всего:</span>
+                      <span className="ml-2 font-medium">{refResult.total}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
