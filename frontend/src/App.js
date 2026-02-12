@@ -22,6 +22,7 @@ import RatesPage from "./pages/admin/RatesPage";
 import QAPage from "./pages/admin/QAPage";
 import ExportPage from "./pages/admin/ExportPage";
 import AuditPage from "./pages/admin/AuditPage";
+import HelpPage from "./pages/admin/HelpPage";
 
 import "./App.css";
 
